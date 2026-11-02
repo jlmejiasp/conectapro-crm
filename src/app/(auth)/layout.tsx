@@ -55,6 +55,11 @@ export default async function AuthLayout({
           </a>{" "}
           · Kevin Belier · MIT
         </p>
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          <a className="underline underline-offset-4" href="/privacidad">
+            Política de privacidad
+          </a>
+        </p>
       </div>
     </main>
   );
