@@ -581,7 +581,7 @@ function WebhookCard({
 
   async function register(recuperar = false) {
     if (recuperar) {
-      const host = registration?.ok && "skipped" in registration ? registration.host : "otro servicio";
+      const host = registration?.ok && "host" in registration ? registration.host : "otro servicio";
       const ok = window.confirm(
         `Recuperar el webhook: los mensajes de tu número dejarán de llegar a ${host} y llegarán a este CRM, que se los despacha a tu agente. ¿Continuar?`
       );
