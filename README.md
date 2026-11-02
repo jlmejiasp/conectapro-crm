@@ -1,4 +1,37 @@
-# Vocero CRM
+# ConectaPro CRM
+
+**ConectaPro es un fork de [Vocero CRM](https://github.com/kevinrivm/vocero-crm), creado originalmente por Kevin Belier.** Conserva la licencia [MIT](LICENSE), su copyright y las funciones del proyecto original. No es una distribución oficial de Vocero.
+
+Esta es la única base del proyecto ConectaPro. La adaptación inicial cambia la marca predeterminada a **ConectaPro**, con su inicial **C** en el panel, favicon y app instalable. Los negocios pueden seguir personalizando nombre, color y logo desde Ajustes → Marca. No se sobrescriben marcas guardadas.
+
+## Trabajar con este fork
+
+```bash
+git clone https://github.com/jlmejiasp/conectapro-crm.git
+cd conectapro-crm
+pnpm install --frozen-lockfile
+```
+
+Sigue los pasos de configuración del proyecto original que aparecen debajo. Para ejecutar **esta marca**, construye el código del fork: la imagen publicada `ghcr.io/kevinrivm/vocero-crm` contiene Vocero, no nuestros cambios.
+
+```bash
+docker compose build --build-arg SOURCE_COMMIT=$(git rev-parse HEAD)
+docker compose up -d --pull never
+```
+
+Los nombres internos, variables `VOCERO_*`, contratos `X-Vocero-*`, versiones y referencias históricas se conservan por compatibilidad. Las instrucciones y capturas heredadas describen Vocero; no representan un despliegue de ConectaPro. No se ha publicado una imagen propia ni desplegado esta adaptación.
+
+## Créditos y licencia
+
+- Proyecto original: [kevinrivm/vocero-crm](https://github.com/kevinrivm/vocero-crm).
+- Autor original: Kevin Belier. Copyright y licencia preservados en `LICENSE`.
+- Fork: [jlmejiasp/conectapro-crm](https://github.com/jlmejiasp/conectapro-crm).
+- Las fuentes y demás recursos conservan sus avisos y licencias originales.
+
+---
+
+## Documentación original de Vocero CRM
+
 
 [![CI](https://github.com/kevinrivm/vocero-crm/actions/workflows/ci.yml/badge.svg)](https://github.com/kevinrivm/vocero-crm/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
