@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getEnv } from "@/lib/env";
 import { apiError, parseBody, withAuth } from "@/lib/api";
 import {
   desconectarCanal,
@@ -82,14 +83,18 @@ export const PUT = withAuth(async (session, req: Request) => {
     verifiedName: check.verifiedName,
   });
 
-  const webhook = await registerWebhookForNumber({
-    wabaId: body.data.wabaId,
-    phoneNumberId: body.data.phoneNumberId,
-    token: body.data.token,
-    webhookUrl: webhookUrl("wa"),
-    verifyToken: webhookVerifyToken(),
-    messagingAccountId,
-  });
+  // Kapso ya entrega los eventos a /api/webhooks/kapso. Rotar el token de
+  // envío no debe sustituir su suscripción ni el override del número en Meta.
+  const webhook = getEnv().KAPSO_WEBHOOK_SECRET
+    ? { ok: true as const, skipped: "kapso" as const }
+    : await registerWebhookForNumber({
+        wabaId: body.data.wabaId,
+        phoneNumberId: body.data.phoneNumberId,
+        token: body.data.token,
+        webhookUrl: webhookUrl("wa"),
+        verifyToken: webhookVerifyToken(),
+        messagingAccountId,
+      });
 
   return Response.json({
     ok: true,
