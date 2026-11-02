@@ -37,6 +37,7 @@ type WebhookInfo = {
 type WebhookRegistration =
   | { ok: true; appWithoutWebhook: boolean; messagingAccount?: MessagingAccountRegistration }
   | { ok: true; skipped: "waba_override"; host: string }
+  | { ok: true; skipped: "kapso" }
   | { ok: false; message: string };
 
 /** 065 — El registro en la Cuenta de mensajes, aparte del del número. */
@@ -478,6 +479,14 @@ function RegistrationNotice({
     );
   }
   if (registration.ok && "skipped" in registration) {
+    if (registration.skipped === "kapso") {
+      return (
+        <p className="flex items-start gap-2 text-sm text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          Kapso mantiene la recepción de WhatsApp; se actualizó el token de envío sin cambiar el webhook en Meta.
+        </p>
+      );
+    }
     return (
       <p className="flex items-start gap-2 text-sm text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
@@ -572,7 +581,7 @@ function WebhookCard({
 
   async function register(recuperar = false) {
     if (recuperar) {
-      const host = registration?.ok && "skipped" in registration ? registration.host : "otro servicio";
+      const host = registration?.ok && "host" in registration ? registration.host : "otro servicio";
       const ok = window.confirm(
         `Recuperar el webhook: los mensajes de tu número dejarán de llegar a ${host} y llegarán a este CRM, que se los despacha a tu agente. ¿Continuar?`
       );
