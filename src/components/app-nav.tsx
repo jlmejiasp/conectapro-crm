@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { AlertTriangle, Bell, BellOff, LogOut, X } from "lucide-react";
+import { AlertTriangle, Bell, BellOff, LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { BrandTile } from "@/components/brand-mark";
 import { BotonInstalar } from "@/components/pwa";
 import { BotonActivarAvisos } from "@/components/activar-avisos";
@@ -411,7 +411,17 @@ function Riel({
   onSalir: () => void;
 }) {
   const [cuenta, setCuenta] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const cuentaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setExpanded(window.localStorage.getItem("conectapro-nav-expanded") === "true");
+  }, []);
+  const toggleExpanded = () => {
+    setExpanded((current) => {
+      window.localStorage.setItem("conectapro-nav-expanded", String(!current));
+      return !current;
+    });
+  };
   useEffect(() => {
     if (!cuenta) return;
     const fuera = (e: MouseEvent) => {
@@ -438,7 +448,8 @@ function Riel({
         title={item.label}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "relative flex h-11 w-11 items-center justify-center rounded-full border transition-colors",
+          "relative flex h-11 items-center border transition-colors",
+          expanded ? "w-full gap-3 rounded-lg px-3" : "w-11 justify-center rounded-full",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           active
             ? "border-transparent bg-riel-activo text-riel-activo-texto"
@@ -446,6 +457,7 @@ function Riel({
         )}
       >
         <item.icon className="h-[19px] w-[19px]" strokeWidth={1.8} aria-hidden />
+        {expanded && <span className="truncate text-[13px] font-semibold">{item.label}</span>}
         {item.badge && unread > 0 && (
           <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-brand-fg">
             {unread > 99 ? "99+" : unread}
@@ -458,21 +470,30 @@ function Riel({
   return (
     <nav
       aria-label="Secciones"
-      className="tarjeta hidden w-[76px] shrink-0 flex-col items-center py-4 lg:flex"
+      className={cn(
+        "tarjeta hidden shrink-0 flex-col py-4 transition-[width] lg:flex",
+        expanded ? "w-[220px] items-stretch px-3" : "w-[76px] items-center"
+      )}
     >
-      <Link href="/inbox" aria-label={branding.name} title={branding.name} className="rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <BrandTile branding={branding} className="h-11 w-11 rounded-[14px] text-[18px]" />
-      </Link>
-      <div className="mt-7 flex min-h-0 flex-1 flex-col items-center gap-2.5 overflow-y-auto">
+      <div className={cn("flex items-center", expanded ? "justify-between" : "flex-col gap-3")}>
+        <Link href="/inbox" aria-label={branding.name} title={branding.name} className="rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <BrandTile branding={branding} className="h-11 w-11 rounded-[14px] text-[18px]" />
+        </Link>
+        <button type="button" onClick={toggleExpanded} aria-label={expanded ? "Ocultar nombres del menú" : "Mostrar nombres del menú"} aria-expanded={expanded} title={expanded ? "Contraer menú" : "Expandir menú"} className="flex h-9 w-9 items-center justify-center rounded-lg text-text-2 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          {expanded ? <PanelLeftClose className="h-5 w-5" aria-hidden /> : <PanelLeftOpen className="h-5 w-5" aria-hidden />}
+        </button>
+      </div>
+      <div className={cn("mt-5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto", expanded ? "items-stretch" : "items-center")}>
         {groups.map((g, i) => (
-          <div key={g.title ?? i} className="flex flex-col items-center gap-2.5">
-            {i > 0 && <span className="my-0.5 h-px w-6 bg-border" aria-hidden />}
+          <div key={g.title ?? i} className={cn("flex flex-col gap-2.5", expanded ? "items-stretch" : "items-center")}>
+            {i > 0 && <span className={cn("my-0.5 h-px bg-border", expanded ? "w-full" : "w-6")} aria-hidden />}
+            {expanded && g.title && <span className="px-3 text-[10px] font-semibold uppercase tracking-wider text-text-3">{g.title}</span>}
             {g.items.map(boton)}
           </div>
         ))}
       </div>
-      <div className="mt-3 flex flex-col items-center gap-2.5">
-        <span className="flex h-11 w-11 items-center justify-center">{campana}</span>
+      <div className={cn("mt-3 flex flex-col gap-2.5", expanded ? "items-stretch" : "items-center")}>
+        <span className={cn("flex h-11 items-center", expanded ? "justify-start px-3" : "w-11 justify-center")}>{campana}</span>
         {boton(SETTINGS_ITEM)}
         <div ref={cuentaRef} className="relative">
           <button
