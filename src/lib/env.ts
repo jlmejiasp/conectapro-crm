@@ -21,6 +21,9 @@ export const envSchema = z.object({
   META_WEBHOOK_VERIFY_TOKEN: z.string().min(8),
   META_APP_SECRET: z.string().optional(),
   KAPSO_WEBHOOK_SECRET: z.string().optional(),
+  // Kapso reenvía a la Cloud API el envío del mismo número en coexistencia.
+  KAPSO_API_KEY: z.string().optional(),
+  KAPSO_API_BASE_URL: z.string().url().default("https://api.kapso.ai/meta/whatsapp"),
   // 066: «Conectar con Meta» (Embedded Signup v4) en Ajustes → WhatsApp. Con
   // las dos y META_APP_SECRET (el de ESA app) aparece el botón; sin ellas,
   // solo el alta manual. Se leen en server/whatsapp/embedded.ts.
