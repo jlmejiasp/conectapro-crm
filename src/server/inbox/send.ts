@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/db/ids";
 import { graphRequest, MetaApiError, normalizeRecipient } from "@/lib/meta/client";
+import { getEnv } from "@/lib/env";
 import { destinatarioMeta, type Destinatario } from "@/lib/meta/destinatario";
 import { publish } from "@/server/events/bus";
 import {
@@ -753,16 +754,20 @@ export async function callGraphSend(
   credentials: Credentials,
   payload: unknown
 ): Promise<string> {
+  const viaKapso = Boolean(getEnv().KAPSO_API_KEY);
   try {
     const res = await graphRequest<{ messages?: { id: string }[] }>(
       `${credentials.phoneNumberId}/messages`,
-      { method: "POST", token: credentials.token, body: payload }
+      { method: "POST", token: credentials.token, body: payload, viaKapso }
     );
     const id = res.messages?.[0]?.id;
     if (!id) throw new SendError("meta_error", "Meta no devolvió ID de mensaje");
     return id;
   } catch (err) {
     if (err instanceof MetaApiError) {
+      if (viaKapso && err.isAuthError) {
+        throw new SendError("meta_error", "Kapso rechazó la clave de envío; revisa la conexión de Kapso");
+      }
       if (err.isAuthError) {
         await markReconnectRequired(credentials.organizationId);
         throw new SendError(
