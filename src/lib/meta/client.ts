@@ -45,22 +45,35 @@ export class MetaApiError extends Error {
   }
 }
 
+/** Error de Kapso: una clave inválida no invalida el token Meta guardado. */
+export class KapsoApiError extends MetaApiError {
+  override name = "KapsoApiError";
+}
+
 export async function graphRequest<T>(
   path: string,
   opts: {
     method?: "GET" | "POST" | "DELETE";
     token: string;
     body?: unknown;
+    /** Solo WhatsApp saliente: Kapso usa el mismo payload de Cloud API. */
+    viaKapso?: boolean;
   }
 ): Promise<T> {
   const env = getEnv();
-  const url = `${env.META_GRAPH_BASE_URL}/${env.META_GRAPH_API_VERSION}/${path}`;
+  const viaKapso = opts.viaKapso && Boolean(env.KAPSO_API_KEY);
+  const ApiError = viaKapso ? KapsoApiError : MetaApiError;
+  const url = viaKapso
+    ? `${env.KAPSO_API_BASE_URL}/v24.0/${path}`
+    : `${env.META_GRAPH_BASE_URL}/${env.META_GRAPH_API_VERSION}/${path}`;
   let res: Response;
   try {
     res = await fetch(url, {
       method: opts.method ?? "GET",
       headers: {
-        Authorization: `Bearer ${opts.token}`,
+        ...(viaKapso
+          ? { "X-API-Key": env.KAPSO_API_KEY! }
+          : { Authorization: `Bearer ${opts.token}` }),
         ...(opts.body !== undefined
           ? { "Content-Type": "application/json" }
           : {}),
@@ -68,7 +81,8 @@ export async function graphRequest<T>(
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });
   } catch (cause) {
-    throw new MetaApiError("No se pudo contactar la API de Meta", {
+    throw new ApiError(
+      viaKapso ? "No se pudo contactar Kapso" : "No se pudo contactar la API de Meta", {
       status: 0,
       details: cause,
     });
@@ -85,7 +99,7 @@ export async function graphRequest<T>(
   if (!res.ok) {
     const err = (json as { error?: { message?: string; code?: number; type?: string } })
       ?.error;
-    throw new MetaApiError(err?.message ?? `Meta respondió ${res.status}`, {
+    throw new ApiError(err?.message ?? `${viaKapso ? "Kapso" : "Meta"} respondió ${res.status}`, {
       status: res.status,
       code: err?.code ?? null,
       type: err?.type ?? null,
