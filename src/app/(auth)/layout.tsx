@@ -48,6 +48,13 @@ export default async function AuthLayout({
           )}
         </div>
         {children}
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          Fork de{" "}
+          <a className="underline underline-offset-4" href="https://github.com/kevinrivm/vocero-crm" target="_blank" rel="noopener noreferrer">
+            Vocero CRM
+          </a>{" "}
+          · Kevin Belier · MIT
+        </p>
       </div>
     </main>
   );

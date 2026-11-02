@@ -50,7 +50,7 @@ export const TEMAS: Record<TemaId, Tema> = {
     tokens: {},
   },
   vocero: {
-    nombre: "Vocero",
+    nombre: "ConectaPro",
     descripcion: "El azul papel frío de la 2.x.",
     modo: "light",
     pareja: "vocero-oscuro",
@@ -92,7 +92,7 @@ export const TEMAS: Record<TemaId, Tema> = {
     },
   },
   "vocero-oscuro": {
-    nombre: "Vocero oscuro",
+    nombre: "ConectaPro oscuro",
     descripcion: "El azul marino de la 2.x.",
     modo: "dark",
     pareja: "vocero",
