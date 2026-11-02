@@ -15,6 +15,7 @@ name: Imagen
 # El commit se hornea como build arg (SOURCE_COMMIT): es lo que hace que
 # /api/health diga `commitVerified: true`.
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
