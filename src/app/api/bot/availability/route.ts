@@ -55,10 +55,10 @@ export async function GET(req: Request) {
   // agenda, el endpoint no existe — no hay nada que autenticar.
   if (!agendaEnabled()) return agendaDisabledResponse();
 
-  const denied = requireBotKey(req);
+  const denied = await requireBotKey(req);
   if (denied) return denied;
 
-  const organizationId = await resolveInstanceOrg();
+  const organizationId = await resolveInstanceOrg(req);
   if (!organizationId) {
     return apiError(409, "no_org", "La instancia aún no tiene organización");
   }

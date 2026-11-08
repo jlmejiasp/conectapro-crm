@@ -1,5 +1,18 @@
 # Cambios
 
+## 2.8.0 — ConectaPro multitenant (2026-11-08)
+
+- Modo optativo con empresas, propietarios, selector y administración de plataforma.
+- Claves y destinos de agentes por empresa, rotación y revocación, sin respaldo global de IA en modo multitenant.
+- Sesión activa validada contra membresía; roles, origen de mutaciones y SSE con revocación.
+- Relaciones compuestas de defensa en PostgreSQL; canales sin asignaciones ambiguas; IDs externos de mensajes únicos por empresa.
+- Lotes Meta separados por destino y firmas obligatorias; arnés de dos empresas y agentes locales.
+
+Actualizar desde 2.7.0: aplicar migraciones y compilar el fork. El modo nuevo está apagado por defecto.
+Para activarlo, seguir `docs/multitenant.md`, configurar administrador, agentes e IA por empresa,
+y verificar la copia en un entorno de ensayo. Las imágenes upstream no contienen estos cambios.
+
+
 Qué trae cada versión de Vocero CRM y qué hacer para actualizar. La versión
 sigue el SemVer del [README](README.md#versiones): una menor trae funciones
 nuevas y actualizar es redesplegar. Desde 1.4.0, cada tag `vX.Y.Z` publica la

@@ -1,9 +1,9 @@
 import { withAuth } from "@/lib/api";
 import { getDb, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
-import { urlSaludCerebro } from "@/server/brains/config";
+import { getOrganizationBrain } from "@/server/brains/connections";
+import { multitenantEnabled } from "@/lib/multitenant";
 import { isAiConfiguredFor } from "@/lib/ai/provider";
-import { isBotKeyConfigured } from "@/server/bot/auth";
 import {
   botLastSeenAt,
   computeBrainStatus,
@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
  * `server/bot/status.ts`.
  */
 export const GET = withAuth(async (session) => {
+  const brain = await getOrganizationBrain(session.organizationId);
   const db = getDb();
   const [rows, health, aiConfigured, dispatch] = await Promise.all([
     db
@@ -26,18 +27,18 @@ export const GET = withAuth(async (session) => {
       .from(schema.agentProfile)
       .where(scoped(schema.agentProfile.organizationId, session.organizationId))
       .limit(1),
-    getBrainHealth(urlSaludCerebro() ?? undefined),
+    getBrainHealth(brain.healthUrl ?? undefined),
     isAiConfiguredFor(session.organizationId),
     estadoDelDespacho(session.organizationId),
   ]);
   const status = computeBrainStatus({
     aiConfigured,
     agentEnabled: rows[0]?.enabled ?? false,
-    botKeyConfigured: isBotKeyConfigured(),
-    lastSeenAt: botLastSeenAt(),
+    botKeyConfigured: brain.keyConfigured,
+    lastSeenAt: botLastSeenAt(multitenantEnabled() ? session.organizationId : undefined),
     health,
     dispatch,
     now: new Date(),
   });
-  return Response.json(status, { headers: { "cache-control": "no-store" } });
+  return Response.json({ ...status, managed: multitenantEnabled() }, { headers: { "cache-control": "no-store" } });
 });

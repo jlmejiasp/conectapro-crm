@@ -40,14 +40,14 @@ export const GET = withAuth(async (session, req: Request) => {
     .from(schema.lead)
     .innerJoin(
       schema.pipelineStage,
-      eq(schema.pipelineStage.id, schema.lead.stageId)
+      eq(schema.pipelineStage.id, schema.lead.stageId),
     )
     .where(scoped(schema.lead.organizationId, session.organizationId));
   const stageByContact = new Map(
-    leadStages.map((r) => [r.contactId, r.stageName])
+    leadStages.map((r) => [r.contactId, r.stageName]),
   );
   const priorityByContact = new Map(
-    leadStages.map((r) => [r.contactId, r.priority])
+    leadStages.map((r) => [r.contactId, r.priority]),
   );
 
   const qDigits = q ? digitsOnly(q) : "";
@@ -63,7 +63,7 @@ export const GET = withAuth(async (session, req: Request) => {
           qDigits.length >= 3
             ? sql`regexp_replace(coalesce(${schema.contact.phone}, ''), '\\D', '', 'g')
                   like ${`%${qDigits}%`}`
-            : undefined
+            : undefined,
         )
       : undefined;
 
@@ -82,8 +82,10 @@ export const GET = withAuth(async (session, req: Request) => {
         schema.contact.organizationId,
         session.organizationId,
         search,
-        stageContactIds ? inArray(schema.contact.id, stageContactIds) : undefined
-      )
+        stageContactIds
+          ? inArray(schema.contact.id, stageContactIds)
+          : undefined,
+      ),
     )
     .orderBy(desc(schema.contact.updatedAt))
     .limit(200);
@@ -94,8 +96,8 @@ export const GET = withAuth(async (session, req: Request) => {
       serializeContact(
         c,
         stageByContact.get(c.id) ?? null,
-        priorityByContact.get(c.id) ?? null
-      )
+        priorityByContact.get(c.id) ?? null,
+      ),
     );
   return Response.json({ contacts });
 });
@@ -112,9 +114,14 @@ const createSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^\d{7,15}$/, "Teléfono en dígitos, con código de país (ej. 5215512345678)"),
+    .regex(
+      /^\d{7,15}$/,
+      "Teléfono en dígitos, con código de país (ej. 5215512345678)",
+    ),
   notes: z.string().max(4000).optional(),
-  source: z.enum(["anuncio", "organico", "referido", "conocido", "otro"]).optional(),
+  source: z
+    .enum(["anuncio", "organico", "referido", "conocido", "otro"])
+    .optional(),
   /** Etapa inicial del lead; si no viene, la primera abierta del tablero. */
   stageId: z.string().min(1).optional(),
 });
@@ -124,6 +131,25 @@ export const POST = withAuth(async (session, req: Request) => {
   if (!body.ok) return body.response;
 
   const db = getDb();
+  if (body.data.stageId) {
+    const [stage] = await db
+      .select({ id: schema.pipelineStage.id })
+      .from(schema.pipelineStage)
+      .where(
+        scoped(
+          schema.pipelineStage.organizationId,
+          session.organizationId,
+          eq(schema.pipelineStage.id, body.data.stageId),
+        ),
+      )
+      .limit(1);
+    if (!stage)
+      return apiError(
+        422,
+        "invalid_stage",
+        "La etapa no pertenece al pipeline de tu empresa",
+      );
+  }
   // 003: la identidad WhatsApp se deriva del teléfono normalizado.
   const phone = normalizeMx(body.data.phone);
   const inserted = await db
@@ -167,12 +193,12 @@ export const POST = withAuth(async (session, req: Request) => {
     return apiError(
       422,
       "no_stage",
-      "El tablero no tiene etapas abiertas donde colocar al prospecto"
+      "El tablero no tiene etapas abiertas donde colocar al prospecto",
     );
   }
 
   return Response.json(
     { contact: serializeContact(inserted[0]), lead: { id: lead.id } },
-    { status: 201 }
+    { status: 201 },
   );
 });

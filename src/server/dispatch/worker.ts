@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
-import { leerConfigDespacho } from "@/server/brains/config";
+import { getOrganizationBrain } from "@/server/brains/connections";
 import {
   construirEvento,
   entregar,
@@ -151,7 +151,7 @@ export async function tanda(ahora: Date = new Date()): Promise<number> {
 }
 
 async function procesar(fila: FilaDespacho): Promise<void> {
-  const config = leerConfigDespacho();
+  const config = await getOrganizationBrain(fila.organizationId);
   if (!config.active) {
     // Quedó de antes de que se quitara o se rompiera la configuración: ya no
     // hay a quién entregarlo, y el agente incluido vuelve a ser quien manda.

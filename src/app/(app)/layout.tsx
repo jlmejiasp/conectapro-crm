@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { getDb, schema } from "@/lib/db";
+import { multitenantEnabled } from "@/lib/multitenant";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
@@ -16,8 +19,13 @@ export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await getSessionOrNull();
-  if (!session) redirect("/login");
+  if (!session) {
+    const identity = await getAuth().api.getSession({ headers: await headers() });
+    if (identity && multitenantEnabled()) redirect("/organizations");
+    redirect("/login");
+  }
   const branding = await getBranding(session.organizationId);
+  const [company] = multitenantEnabled() ? await getDb().select({ name: schema.organization.name }).from(schema.organization).where(eq(schema.organization.id, session.organizationId)).limit(1) : [];
   const authSession = await getAuth().api.getSession({
     headers: await headers(),
   });
@@ -31,6 +39,8 @@ export default async function AppLayout({
   return (
     <AppShell
       branding={branding}
+      multitenant={multitenantEnabled()}
+      organizationName={company?.name}
       userName={authSession?.user.name ?? "Usuario"}
       role={session.role}
       apariencia={apariencia}

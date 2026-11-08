@@ -94,7 +94,7 @@ export const member = pgTable("member", {
     .references(() => user.id, { onDelete: "cascade" }),
   role: text("role").notNull().default("member"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => [uniqueIndex("member_org_user_uq").on(t.organizationId, t.userId)]);
 
 export const invitation = pgTable("invitation", {
   id: text("id").primaryKey(),
@@ -413,7 +413,7 @@ export const message = pgTable(
       .notNull()
       .references(() => conversation.id, { onDelete: "cascade" }),
     /** ID de WhatsApp — UNIQUE (idempotencia). Nullable en salientes de prueba. */
-    waMessageId: text("wa_message_id").unique(),
+    waMessageId: text("wa_message_id"),
     direction: text("direction", { enum: ["in", "out"] }).notNull(),
     type: text("type").notNull().default("text"),
     text: text("text"),
@@ -447,6 +447,7 @@ export const message = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [
+    uniqueIndex("message_org_wa_uq").on(t.organizationId, t.waMessageId),
     index("message_org_conv_idx").on(
       t.organizationId,
       t.conversationId,
@@ -534,6 +535,7 @@ export const metaCredentials = pgTable(
     uniqueIndex("meta_credentials_org_uq").on(t.organizationId),
     // El webhook enruta por phone_number_id: debe ser único en la instancia.
     uniqueIndex("meta_credentials_phone_uq").on(t.phoneNumberId),
+    uniqueIndex("meta_credentials_waba_uq").on(t.wabaId),
   ]
 );
 
@@ -580,7 +582,7 @@ export const instagramCredentials = pgTable(
   (t) => [
     uniqueIndex("instagram_credentials_org_uq").on(t.organizationId),
     uniqueIndex("instagram_credentials_ig_user_uq").on(t.igUserId),
-    index("instagram_credentials_account_ref_idx").on(t.accountRef),
+    uniqueIndex("instagram_credentials_account_ref_idx").on(t.accountRef),
   ]
 );
 
@@ -632,7 +634,7 @@ export const messengerCredentials = pgTable(
   (t) => [
     uniqueIndex("messenger_credentials_org_uq").on(t.organizationId),
     uniqueIndex("messenger_credentials_page_uq").on(t.pageId),
-    index("messenger_credentials_account_ref_idx").on(t.accountRef),
+    uniqueIndex("messenger_credentials_account_ref_idx").on(t.accountRef),
   ]
 );
 
@@ -1401,3 +1403,16 @@ export const conversationNote = pgTable(
     index("conversation_note_conv_idx").on(t.organizationId, t.conversationId, t.createdAt),
   ]
 );
+
+/** 068 — Una credencial y un destino de agente por empresa. */
+export const brainConnection = pgTable("brain_connection", {
+  organizationId: text("organization_id").primaryKey()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  keyHash: text("key_hash").notNull().unique(),
+  secretCipher: text("secret_cipher").notNull(),
+  secretIv: text("secret_iv").notNull(),
+  secretTag: text("secret_tag").notNull(),
+  dispatchUrl: text("dispatch_url"),
+  healthUrl: text("health_url"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});

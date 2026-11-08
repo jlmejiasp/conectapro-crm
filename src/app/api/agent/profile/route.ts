@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { z } from "zod";
 import { apiError, parseBody, withAuth } from "@/lib/api";
 import { getDb, schema } from "@/lib/db";
@@ -10,7 +11,7 @@ import {
   type ClaveHerramienta,
 } from "@/lib/agent-roles";
 import { agendaEnabled } from "@/server/agenda/flag";
-import { leerConfigDespacho, urlSaludCerebro } from "@/server/brains/config";
+import { getOrganizationBrain } from "@/server/brains/connections";
 import { getBrainHealth } from "@/server/bot/status";
 
 export const dynamic = "force-dynamic";
@@ -68,7 +69,7 @@ export const PUT = withAuth(async (session, req: Request) => {
   // sin un cerebro que conteste dejaría a los clientes sin respuesta creyendo
   // que la tienen; apagarlo siempre se puede.
   if (body.data.enabled === true) {
-    const problema = await problemaDelCerebro();
+    const problema = await problemaDelCerebro(session.organizationId);
     if (problema) return apiError(409, "sin_cerebro", problema);
   }
 
@@ -88,16 +89,17 @@ export const PUT = withAuth(async (session, req: Request) => {
 });
 
 /** Por qué no se puede encender el agente, o `null` si hay cerebro sano. */
-async function problemaDelCerebro(): Promise<string | null> {
-  const despacho = leerConfigDespacho();
+async function problemaDelCerebro(organizationId: string): Promise<string | null> {
+  const despacho = await getOrganizationBrain(organizationId);
   if (!despacho.active) {
+    if (multitenantEnabled()) return "Pide al administrador de la plataforma que conecte el agente de tu empresa";
     return despacho.problem === "sin_llave"
       ? "Falta BOT_API_KEY: sin ella el CRM no puede despacharle a tu agente."
       : despacho.problem === "url"
         ? "BRAIN_DISPATCH_URL no es una dirección válida."
         : "No hay un agente conectado. Conéctalo (BRAIN_DISPATCH_URL) y vuelve a encenderlo.";
   }
-  const salud = await getBrainHealth(urlSaludCerebro() ?? undefined);
+  const salud = await getBrainHealth(despacho.healthUrl ?? undefined);
   if (salud && !salud.reachable) {
     return `Tu agente (${despacho.host}) no contesta. Revisa que esté corriendo y vuelve a intentar.`;
   }

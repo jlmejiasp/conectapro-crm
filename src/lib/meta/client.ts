@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { getEnv } from "@/lib/env";
 
 /**
@@ -58,10 +59,13 @@ export async function graphRequest<T>(
     body?: unknown;
     /** Solo WhatsApp saliente: Kapso usa el mismo payload de Cloud API. */
     viaKapso?: boolean;
+    organizationId?: string;
   }
 ): Promise<T> {
   const env = getEnv();
-  const viaKapso = opts.viaKapso && Boolean(env.KAPSO_API_KEY);
+  const viaKapso = opts.viaKapso && Boolean(env.KAPSO_API_KEY) && (
+    !multitenantEnabled() || Boolean(env.KAPSO_ORGANIZATION_ID && opts.organizationId === env.KAPSO_ORGANIZATION_ID)
+  );
   const ApiError = viaKapso ? KapsoApiError : MetaApiError;
   const url = viaKapso
     ? `${env.KAPSO_API_BASE_URL}/v24.0/${path}`

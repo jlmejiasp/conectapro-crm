@@ -68,11 +68,11 @@ const DESPACHANDO: BrainDispatchDto = {
 };
 
 describe("computeBrainStatus — 036: contesta el cerebro al que se le despacha", () => {
-  it("sin despacho, la llave nueva es la de una instancia que no despacha", () => {
+  it("sin despacho, la llave nueva es la de una instancia que no despacha", async () => {
     expect(status({}).dispatch).toEqual(SIN_DESPACHO);
   });
 
-  it("despacho e interruptor: contesta el cerebro, sin aviso", () => {
+  it("despacho e interruptor: contesta el cerebro, sin aviso", async () => {
     const s = status({
       aiConfigured: true,
       agentEnabled: true,
@@ -89,20 +89,20 @@ describe("computeBrainStatus — 036: contesta el cerebro al que se le despacha"
     expect(externalAnswering(s)).toBe(true);
   });
 
-  it("despacho con el interruptor apagado → aviso apagado, y no contesta nadie", () => {
+  it("despacho con el interruptor apagado → aviso apagado, y no contesta nadie", async () => {
     const s = status({ botKeyConfigured: true, health: EN_LINEA, dispatch: DESPACHANDO });
     expect(s.warning).toBe("apagado");
     expect(externalAnswering(s)).toBe(false);
   });
 
-  it("despacho e interruptor con el /health caído: se ve caído", () => {
+  it("despacho e interruptor con el /health caído: se ve caído", async () => {
     const s = status({ agentEnabled: true, botKeyConfigured: true, health: CAIDA, dispatch: DESPACHANDO });
     expect(s.warning).toBeNull();
     expect(externalDown(s)).toBe(true);
     expect(externalAnswering(s)).toBe(false);
   });
 
-  it("sin despacho → sin_cerebro (bandeja manual), con o sin IA e interruptor", () => {
+  it("sin despacho → sin_cerebro (bandeja manual), con o sin IA e interruptor", async () => {
     for (const aiConfigured of [false, true])
       for (const agentEnabled of [false, true]) {
         const s = status({ aiConfigured, agentEnabled, botKeyConfigured: true, health: EN_LINEA });
@@ -111,14 +111,14 @@ describe("computeBrainStatus — 036: contesta el cerebro al que se le despacha"
       }
   });
 
-  it("despacho mal configurado cuenta como sin cerebro", () => {
+  it("despacho mal configurado cuenta como sin cerebro", async () => {
     const roto: BrainDispatchDto = { ...SIN_DESPACHO, host: "nea:8000", problem: "sin_llave" };
     const s = status({ aiConfigured: true, agentEnabled: true, dispatch: roto });
     expect(s.warning).toBe("sin_cerebro");
     expect(s.dispatch.problem).toBe("sin_llave");
   });
 
-  it("activo: llamada reciente (≤ 24 h), /health en línea o despacho", () => {
+  it("activo: llamada reciente (≤ 24 h), /health en línea o despacho", async () => {
     expect(status({ botKeyConfigured: true, lastSeenAt: HACE_3_MIN }).external.active).toBe(true);
     const justo = new Date(NOW.getTime() - EXTERNAL_SEEN_WINDOW_MS);
     expect(status({ botKeyConfigured: true, lastSeenAt: justo }).external.active).toBe(true);
@@ -132,7 +132,7 @@ describe("computeBrainStatus — 036: contesta el cerebro al que se le despacha"
 });
 
 describe("textos compartidos", () => {
-  it("«Nea» solo si su /health habla el contrato de Nea", () => {
+  it("«Nea» solo si su /health habla el contrato de Nea", async () => {
     const conNea = status({ botKeyConfigured: true, health: EN_LINEA });
     expect(externalBrainName(conNea)).toBe("Nea");
     expect(externalAnswerLabel(conNea)).toBe("Responde tu cerebro externo (Nea)");
@@ -141,7 +141,7 @@ describe("textos compartidos", () => {
     expect(externalAnswerLabel(sinNombre)).toBe("Responde tu cerebro externo");
   });
 
-  it("«responde tu cerebro externo» solo si se le despacha, está encendido y no está caído", () => {
+  it("«responde tu cerebro externo» solo si se le despacha, está encendido y no está caído", async () => {
     const base = { agentEnabled: true, botKeyConfigured: true, dispatch: DESPACHANDO };
     const sano = status({ ...base, health: EN_LINEA });
     expect(externalAnswering(sano)).toBe(true);
@@ -156,14 +156,14 @@ describe("textos compartidos", () => {
     expect(externalAnswering(status({ botKeyConfigured: true, lastSeenAt: HACE_3_MIN, health: EN_LINEA }))).toBe(false);
   });
 
-  it("con BRAIN_HEALTH_URL mal escrita no se le da por caído", () => {
+  it("con BRAIN_HEALTH_URL mal escrita no se le da por caído", async () => {
     const mal: BrainHealthDto = { reachable: false, host: "", checkedAt: NOW.toISOString(), problem: "config" };
     const s = status({ agentEnabled: true, botKeyConfigured: true, health: mal, dispatch: DESPACHANDO });
     expect(externalDown(s)).toBe(false);
     expect(externalAnswering(s)).toBe(true);
   });
 
-  it("haceCuanto", () => {
+  it("haceCuanto", async () => {
     const t = NOW.getTime();
     expect(haceCuanto(new Date(t - 20_000).toISOString(), t)).toBe("hace unos segundos");
     expect(haceCuanto(new Date(t + 60_000).toISOString(), t)).toBe("hace unos segundos");
@@ -187,22 +187,22 @@ describe("la última llamada del cerebro externo (requireBotKey)", () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
-  it("solo una llamada autenticada la anota", () => {
+  it("solo una llamada autenticada la anota", async () => {
     expect(botLastSeenAt()).toBeNull();
-    expect(requireBotKey(req())?.status).toBe(401);
-    expect(requireBotKey(req("otra-clave-igual-de-larga-pero-mala!!"))?.status).toBe(401);
+    expect((await requireBotKey(req()))?.status).toBe(401);
+    expect((await requireBotKey(req("otra-clave-igual-de-larga-pero-mala!!")))?.status).toBe(401);
     expect(botLastSeenAt()).toBeNull();
     const antes = Date.now();
-    expect(requireBotKey(req(KEY))).toBeNull();
+    expect((await requireBotKey(req(KEY)))).toBeNull();
     expect(botLastSeenAt()!.getTime()).toBeGreaterThanOrEqual(antes);
   });
 
-  it("vive en memoria del proceso (compartida entre rutas)", () => {
+  it("vive en memoria del proceso (compartida entre rutas)", async () => {
     markBotSeen(HACE_3_MIN.getTime());
     expect(botLastSeenAt()?.toISOString()).toBe(HACE_3_MIN.toISOString());
   });
 
-  it("una key corta equivale a no tener llave", () => {
+  it("una key corta equivale a no tener llave", async () => {
     expect(isBotKeyConfigured()).toBe(true);
     vi.stubEnv("BOT_API_KEY", "corta");
     expect(isBotKeyConfigured()).toBe(false);

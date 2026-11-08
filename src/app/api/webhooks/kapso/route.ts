@@ -1,3 +1,5 @@
+import { multitenantEnabled } from "@/lib/multitenant";
+import { resolverOrganizacion } from "@/server/webhooks/organizacion";
 import { getEnv } from "@/lib/env";
 import { firmaKapsoValida, mensajeKapsoAMeta } from "@/server/kapso/webhook";
 import { recibirEvento } from "@/server/webhooks/recibir";
@@ -18,5 +20,8 @@ export async function POST(req: Request) {
   try { event = JSON.parse(body); } catch { return new Response(null, { status: 400 }); }
   const payload = mensajeKapsoAMeta(event);
   if (!payload) return new Response(null, { status: 422 });
+  if (multitenantEnabled() && (!getEnv().KAPSO_ORGANIZATION_ID || await resolverOrganizacion("whatsapp", payload) !== getEnv().KAPSO_ORGANIZATION_ID)) {
+    return new Response(null, { status: 401 });
+  }
   return recibirEvento("whatsapp", payload, body, "kapso");
 }

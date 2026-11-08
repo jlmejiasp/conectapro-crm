@@ -40,23 +40,30 @@ type HealthCacheEntry = {
 // dev) y la última llamada la anota `requireBotKey`, en otra ruta.
 const globalForBrain = globalThis as unknown as {
   __voceroBotLastSeen?: number;
+  __conectaproBotSeen?: Map<string, number>;
   __voceroBrainHealth?: HealthCacheEntry;
 };
 
 /** La anota `requireBotKey` en cada llamada autenticada. Solo memoria: se
  *  pierde al reiniciar, y la UI lo dice («desde el último arranque»). */
-export function markBotSeen(now: number = Date.now()): void {
+export function markBotSeen(now: number = Date.now(), organizationId?: string): void {
+  if (organizationId) {
+    globalForBrain.__conectaproBotSeen ??= new Map();
+    globalForBrain.__conectaproBotSeen.set(organizationId, now);
+    return;
+  }
   globalForBrain.__voceroBotLastSeen = now;
 }
 
-export function botLastSeenAt(): Date | null {
-  const t = globalForBrain.__voceroBotLastSeen;
+export function botLastSeenAt(organizationId?: string): Date | null {
+  const t = organizationId ? globalForBrain.__conectaproBotSeen?.get(organizationId) : globalForBrain.__voceroBotLastSeen;
   return typeof t === "number" ? new Date(t) : null;
 }
 
 /** Solo para tests. */
 export function resetBrainStatusState(): void {
   delete globalForBrain.__voceroBotLastSeen;
+  delete globalForBrain.__conectaproBotSeen;
   delete globalForBrain.__voceroBrainHealth;
 }
 

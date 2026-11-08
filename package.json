@@ -1,6 +1,6 @@
 {
   "name": "conectapro-crm",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "ConectaPro: fork de Vocero CRM, multicanal y self-hosted (MIT)",
   "license": "MIT",
   "type": "module",
@@ -28,7 +28,8 @@
     "db:migrate": "drizzle-kit migrate",
     "seed:demo": "esbuild scripts/seed/demo.ts --bundle --platform=node --format=esm --outfile=.tmp-seed-demo.mjs --alias:@=./src --packages=external && node .tmp-seed-demo.mjs",
     "init-env": "esbuild scripts/init-env.ts --bundle --platform=node --format=esm --outfile=.tmp-init-env.mjs --alias:@=./src --log-level=warning && node .tmp-init-env.mjs",
-    "doctor": "esbuild scripts/doctor.ts --bundle --platform=node --format=esm --outfile=.tmp-doctor.mjs --alias:@=./src --log-level=warning --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" && node .tmp-doctor.mjs"
+    "doctor": "esbuild scripts/doctor.ts --bundle --platform=node --format=esm --outfile=.tmp-doctor.mjs --alias:@=./src --log-level=warning --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" && node .tmp-doctor.mjs",
+    "test:e2e:multitenant": "node --env-file=.env scripts/e2e-multitenant.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

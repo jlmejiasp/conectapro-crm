@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { redirect } from "next/navigation";
 import { getSessionOrNull } from "@/lib/auth/session";
 import { todayInTz } from "@/lib/time/slots";
@@ -20,7 +21,7 @@ export default async function ResultsPage() {
   // El layout ya manda al login sin sesión; esto es por si la página se
   // resuelve primero.
   const session = await getSessionOrNull();
-  if (!session) redirect("/login");
+  if (!session) redirect(multitenantEnabled() ? "/organizations" : "/login");
   const [branding, timezone] = await Promise.all([
     getBranding(session.organizationId),
     businessTimezone(session.organizationId),

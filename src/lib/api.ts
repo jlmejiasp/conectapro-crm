@@ -1,11 +1,18 @@
+import { canConfigure } from "@/lib/auth/roles";
+import { multitenantEnabled } from "@/lib/multitenant";
+import { sameOrigin } from "@/lib/request-origin";
 import { z } from "zod";
-import { requireSession, UnauthorizedError, type SessionContext } from "@/lib/auth/session";
+import {
+  requireSession,
+  UnauthorizedError,
+  type SessionContext,
+} from "@/lib/auth/session";
 
 /** Respuesta de error estándar de la API interna (contrato api.md). */
 export function apiError(
   status: number,
   code: string,
-  message: string
+  message: string,
 ): Response {
   return Response.json({ error: { code, message } }, { status });
 }
@@ -15,9 +22,18 @@ export function apiError(
  * captura errores no controlados (500 sin stack) y deja pasar Response.
  */
 export function withAuth<Args extends unknown[]>(
-  handler: (session: SessionContext, ...args: Args) => Promise<Response>
+  handler: (session: SessionContext, ...args: Args) => Promise<Response>,
 ): (...args: Args) => Promise<Response> {
   return async (...args: Args) => {
+    const req = args[0];
+    if (
+      multitenantEnabled() &&
+      req instanceof Request &&
+      !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
+      !sameOrigin(req)
+    ) {
+      return apiError(403, "forbidden", "Origen no permitido");
+    }
     let session: SessionContext;
     try {
       session = await requireSession();
@@ -26,6 +42,31 @@ export function withAuth<Args extends unknown[]>(
         return apiError(401, "unauthorized", "No autenticado");
       }
       throw err;
+    }
+    if (
+      multitenantEnabled() &&
+      req instanceof Request &&
+      !["GET", "HEAD", "OPTIONS"].includes(req.method)
+    ) {
+      const path = new URL(req.url).pathname;
+      if (
+        [
+          "/api/settings/",
+          "/api/agent/",
+          "/api/kb",
+          "/api/calendar/settings",
+          "/api/pipeline/stages",
+          "/api/seed/",
+          "/api/lab/",
+        ].some((prefix) => path.startsWith(prefix)) &&
+        !canConfigure(session.role)
+      ) {
+        return apiError(
+          403,
+          "forbidden",
+          "Solo quien administra la empresa puede modificar su configuración",
+        );
+      }
     }
     try {
       return await handler(session, ...args);
@@ -39,7 +80,7 @@ export function withAuth<Args extends unknown[]>(
 /** Parsea el body JSON con un esquema Zod; inválido → Response 422. */
 export async function parseBody<T>(
   req: Request,
-  schema: z.ZodType<T>
+  schema: z.ZodType<T>,
 ): Promise<{ ok: true; data: T } | { ok: false; response: Response }> {
   let raw: unknown;
   try {

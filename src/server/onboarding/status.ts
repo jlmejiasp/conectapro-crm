@@ -1,9 +1,10 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { getDb, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
 import { estadoIaDe, mensajeDeEstado } from "@/lib/ai/provider";
 import { agendaEnabled } from "@/server/agenda/flag";
 import { verifyCalendar } from "./calendar-verifiers";
-import { leerConfigDespacho, urlSaludCerebro } from "@/server/brains/config";
+import { getOrganizationBrain } from "@/server/brains/connections";
 import { getBrainHealth } from "@/server/bot/status";
 
 /**
@@ -111,7 +112,7 @@ export async function onboardingStatus(
           ? "Meta dejó de aceptar el token de WhatsApp: vuelve a conectar el número."
           : null,
     },
-    await pasoCerebro(),
+    await pasoCerebro(organizationId),
   ];
 
   if (agendaEnabled()) {
@@ -143,15 +144,16 @@ type Perfil = { name: string; instructions: string | null; enabled: boolean };
  * que llevar: dice qué falta y lleva a la guía. Listo cuando el despacho está
  * configurado y el `/health` del cerebro contesta.
  */
-async function pasoCerebro(): Promise<ReadinessStep> {
-  const base = { key: "brain" as const, label: "Tu agente", href: null };
-  const despacho = leerConfigDespacho();
+async function pasoCerebro(organizationId: string): Promise<ReadinessStep> {
+  const base = { key: "brain" as const, label: "Tu agente", href: multitenantEnabled() ? "/organizations" : null };
+  const despacho = await getOrganizationBrain(organizationId);
   if (!despacho.active) {
     return {
       ...base,
       status: "pending",
-      nextAction:
-        "Levanta tu agente (Nea) al lado del CRM y pon BRAIN_DISPATCH_URL y BOT_API_KEY en el entorno",
+      nextAction: multitenantEnabled()
+        ? "Pide al administrador de la plataforma que conecte el agente de tu empresa"
+        : "Levanta tu agente (Nea) al lado del CRM y pon BRAIN_DISPATCH_URL y BOT_API_KEY en el entorno",
       problem:
         despacho.problem === "url"
           ? "BRAIN_DISPATCH_URL no es una dirección válida."
@@ -160,7 +162,7 @@ async function pasoCerebro(): Promise<ReadinessStep> {
             : null,
     };
   }
-  const salud = await getBrainHealth(urlSaludCerebro() ?? undefined);
+  const salud = await getBrainHealth(despacho.healthUrl ?? undefined);
   if (salud && !salud.reachable) {
     return {
       ...base,

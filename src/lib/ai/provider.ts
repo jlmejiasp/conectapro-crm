@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { isAiConfiguredByEnv } from "@/lib/env";
 import { last4, OPENROUTER_BASE_URL } from "@/lib/ai/presets";
 import {
@@ -54,7 +55,7 @@ export type AiResolution =
  * Los strings vacíos cuentan como ausentes, como en `getEnv()`.
  */
 export function envAiProvider(): AiProvider | null {
-  if (!isAiConfiguredByEnv()) return null;
+  if (multitenantEnabled() || !isAiConfiguredByEnv()) return null;
   const model = leer("OPENROUTER_MODEL") ?? "";
   return {
     source: "env",

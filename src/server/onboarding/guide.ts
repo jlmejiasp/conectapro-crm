@@ -98,7 +98,7 @@ export function guideFrom(status: OnboardingStatus): Guide {
       description:
         "El CRM no trae agente: contesta el que conectas al lado (Nea, o el tuyo). Sin agente, el CRM funciona como bandeja manual y contestas tú.",
       done: ready(brain),
-      href: GUIA_DEL_PAR,
+      href: brain?.href ?? GUIA_DEL_PAR,
       cta: "Cómo conectarlo",
       hint: ready(brain) ? null : (brain?.problem ?? brain?.nextAction ?? null),
       optional: true,

@@ -18,10 +18,10 @@ export const maxDuration = 300;
  * `src/server/bot/llm-proxy.ts`.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ ruta: string[] }> }) {
-  const denied = requireBotKey(req);
+  const denied = await requireBotKey(req);
   if (denied) return denied;
 
-  const organizationId = await resolveInstanceOrg();
+  const organizationId = await resolveInstanceOrg(req);
   if (!organizationId) {
     return apiError(409, "no_org", "La instancia aún no tiene organización");
   }

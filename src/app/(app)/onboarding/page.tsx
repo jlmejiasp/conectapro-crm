@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { redirect } from "next/navigation";
 import { OnboardingClient } from "@/components/onboarding/onboarding-client";
 import { getSessionOrNull } from "@/lib/auth/session";
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function OnboardingPage() {
   const session = await getSessionOrNull();
-  if (!session) redirect("/login");
+  if (!session) redirect(multitenantEnabled() ? "/organizations" : "/login");
   if (!canConfigure(session.role)) redirect("/inbox");
   const [guide, [profile]] = await Promise.all([
     guideStatus(session.organizationId),
