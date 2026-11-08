@@ -108,7 +108,7 @@ jobs:
       DATABASE_URL: postgresql://test:local-test-only@localhost:5432/conectapro_test
       APP_BASE_URL: http://localhost:3100
       BETTER_AUTH_SECRET: ci-local-multitenant-auth-secret-only
-      ENCRYPTION_KEY: MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       META_WEBHOOK_VERIFY_TOKEN: ci-local-webhook-token
       META_APP_SECRET: ci-local-meta-secret
       BOT_API_KEY: global-key-that-must-not-be-accepted

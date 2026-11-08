@@ -11,6 +11,9 @@ if (
   process.env.WA_MOCK_ENABLED !== "true"
 )
   throw new Error("Solo base local desechable con mocks");
+if (Buffer.from(process.env.ENCRYPTION_KEY ?? "", "base64").length !== 32) {
+  throw new Error("La clave de cifrado de pruebas debe contener exactamente 32 bytes");
+}
 const sql = postgres(url, {
   max: 1,
   onnotice: () => {},
