@@ -144,6 +144,46 @@ try {
     a.org.id !== b.org.id,
     "Dos empresas creadas con propietarios independientes",
   );
+  const webhookSettings = await request("/api/settings/webhook", {
+    cookie: a.cookie,
+  });
+  check(
+    webhookSettings.status === 403 && !webhookSettings.data?.verifyToken,
+    "El propietario de una empresa no recibe el token global de webhooks",
+  );
+  const aiBody = {
+    provider: "openai_compatible",
+    baseUrl: "https://proveedor-no-aprobado.invalid/v1",
+    model: "modelo-de-prueba",
+    token: "token-ficticio-de-prueba",
+  };
+  for (const [path, method] of [
+    ["", "PUT"],
+    ["/test", "POST"],
+    ["/models", "POST"],
+  ]) {
+    const r = await request(`/api/settings/ai${path}`, {
+      cookie: a.cookie,
+      method,
+      body: aiBody,
+    });
+    check(
+      r.status === 422 && r.data?.error?.code === "destino_no_permitido",
+      `IA ${method} ${path || "/"} rechaza un destino sin aprobación`,
+    );
+  }
+  const asset = `audit-media-${suffix}`;
+  await sql`insert into media_asset(id,organization_id,kind) values(${asset},${a.org.id},'location')`;
+  const ownMedia = await request(`/api/media/${asset}`, { cookie: a.cookie });
+  const foreignMedia = await request(`/api/media/${asset}`, {
+    cookie: b.cookie,
+  });
+  check(
+    ownMedia.data?.error?.code === "no_binary" &&
+      foreignMedia.status === 404 &&
+      foreignMedia.data?.error?.code === "not_found",
+    "Los adjuntos de otra empresa no revelan su existencia",
+  );
   for (const c of companies) {
     const r = await request("/api/organizations", { cookie: c.cookie });
     check(

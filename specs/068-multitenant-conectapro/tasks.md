@@ -20,3 +20,5 @@ Las pruebas locales de integración usan PostgreSQL WASM (PGlite). El sandbox de
 la memoria compartida requerida por PostgreSQL nativo; por eso no se declara esa
 verificación como realizada. La entrega funciona con una sola réplica, sin billing,
 dominios por cliente ni alta pública. No se ha activado en la instalación existente.
+
+- [x] Añadir la columna de fecha de creación a invitaciones y generar 0031.

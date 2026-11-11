@@ -18,3 +18,7 @@ La instrucción del responsable de convertir ConectaPro en multitenant sustituye
 - Webhooks Meta firmados obligatoriamente en modo multitenant, separados por entrada/cambio antes de persistir y procesar. Zernio requiere firma incluso si falta secreto. Unicidad de cuentas por proveedor para evitar enrutamiento ambiguo.
 - Primera versión operativa con una sola réplica de aplicación; SSE en memoria por organización. Escalado horizontal y facturación quedan fuera de esta entrega y se documentan.
 - Pruebas con PostgreSQL local temporal, dos empresas, cambios de organización y ataques de acceso por IDs de la otra empresa. Sin acceso a datos de producción.
+
+- Aplicar 0031 antes de iniciar la imagen con Better Auth actualizado.
+- Verificar en PostgreSQL que funcionan inicio de sesión, cambio de empresa,
+  alta de propietario y restablecimiento de contraseña.

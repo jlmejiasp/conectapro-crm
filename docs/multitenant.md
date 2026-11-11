@@ -136,3 +136,19 @@ conversación que abre la guía. Se comprueba la bandeja de esa empresa y se
 distingue entre respuesta enviada y entrega confirmada por el canal. Si el
 proveedor no informa de la entrega, se puede confirmar desde el móvil de
 prueba enviando el texto de confirmación que indica la guía.
+
+### Controles de seguridad de plataforma
+
+Solo el superadmin puede consultar la URL con el token compartido de los
+webhooks. Los administradores de empresa conservan la conexión automática
+y pueden pedir al superadmin ayuda para configuraciones manuales.
+
+En modo multitenant, la IA acepta OpenRouter o bases HTTPS aprobadas por el
+operador mediante `MULTITENANT_AI_ALLOWED_BASE_URLS` (separadas por comas).
+Esta lista debe contener únicamente proveedores de confianza. El CRM rechaza
+redirecciones y exige volver a indicar una llave cuando cambia el destino.
+Los adjuntos privados se vuelven a autorizar en cada descarga.
+
+La actualización de Better Auth aplica la migración aditiva
+`0031_invitation_created_at`. No cambia contraseñas ni sesiones. La aplicación
+anterior puede seguir leyendo la base si se necesita revertir la imagen.

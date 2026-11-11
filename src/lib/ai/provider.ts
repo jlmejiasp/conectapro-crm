@@ -1,3 +1,4 @@
+import { aiDestinationAllowed, AI_DESTINATION_ERROR } from "@/lib/ai/destinations";
 import { multitenantEnabled } from "@/lib/multitenant";
 import { isAiConfiguredByEnv } from "@/lib/env";
 import { last4, OPENROUTER_BASE_URL } from "@/lib/ai/presets";
@@ -31,7 +32,7 @@ export type AiProvider = {
 
 export type EstadoIa =
   | { activa: true; origen: "org" | "env"; last4: string }
-  | { activa: false; motivo: "sin_configurar" }
+  | { activa: false; motivo: "sin_configurar" | "destino_no_permitido" }
   | {
       activa: false;
       motivo: "token_invalido" | "sin_saldo";
@@ -134,11 +135,17 @@ export async function resolveAiProvider(
   const cred = organizationId
     ? await getAiCredentialSecret(organizationId)
     : null;
+  if (cred && !aiDestinationAllowed(cred.baseUrl)) {
+    return { ok: false, estado: { activa: false, motivo: "destino_no_permitido" } };
+  }
   return resolver(cred, envAiProvider());
 }
 
 export async function estadoIaDe(organizationId: string): Promise<EstadoIa> {
   const cred = await getAiCredentialPublic(organizationId);
+  if (cred && !aiDestinationAllowed(cred.baseUrl)) {
+    return { activa: false, motivo: "destino_no_permitido" };
+  }
   const env = envAiProvider();
   return interpretarCredencial(cred, env ? { last4: last4(env.token) } : null);
 }
@@ -159,6 +166,8 @@ export function mensajeDeEstado(estado: EstadoIa): string | null {
       // «Encendido». El problema no es que esté apagado, es que no tiene con
       // qué pensar.
       return "Tu agente no puede contestar todavía: configura tu proveedor de IA en Ajustes → IA.";
+    case "destino_no_permitido":
+      return AI_DESTINATION_ERROR;
     case "token_invalido":
       return "Tu agente está pausado: el proveedor rechazó tu llave. Revísala en Ajustes → IA.";
     case "sin_saldo":

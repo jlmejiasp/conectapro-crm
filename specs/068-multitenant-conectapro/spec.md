@@ -44,3 +44,9 @@ Una instalación compartida aloja varias empresas. Cada empresa controla sus usu
 ## Decisiones pendientes
 
 Modelo exacto de administrador de plataforma, dominios y marca, proveedores de canal y facturación, límites por plan y política de datos. No abrir registro ni incorporar clientes reales hasta superar las pruebas de aislamiento.
+
+### Actualización de seguridad
+
+La migración 0031 añade `invitation.created_at`, requerida por el adaptador
+de Better Auth actualizado. Los datos existentes se conservan y la imagen
+anterior puede leer la base con la columna adicional.

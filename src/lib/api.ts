@@ -71,7 +71,8 @@ export function withAuth<Args extends unknown[]>(
     try {
       return await handler(session, ...args);
     } catch (err) {
-      console.error("[api] error no controlado:", err);
+      // Los errores de BD pueden incluir los parámetros de la consulta.
+      console.error("[api] error no controlado:", err instanceof Error ? err.name : "Error");
       return apiError(500, "internal", "Error interno");
     }
   };

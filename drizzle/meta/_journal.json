@@ -218,6 +218,13 @@
       "when": 1794164031901,
       "tag": "0030_message_tenant",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794434445646,
+      "tag": "0031_invitation_created_at",
+      "breakpoints": true
     }
   ]
 }

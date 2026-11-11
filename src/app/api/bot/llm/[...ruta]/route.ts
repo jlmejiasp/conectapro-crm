@@ -34,5 +34,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ ruta: s
     contentType: req.headers.get("content-type"),
   });
   if (!r.ok) return apiError(r.status, r.code, r.message);
-  return new Response(r.cuerpo, { status: r.status, headers: { "Content-Type": r.contentType } });
+  const mime = r.contentType.split(";")[0]?.trim().toLowerCase();
+  const safeMime = mime === "application/json" || mime === "text/event-stream" || mime?.endsWith("+json");
+  return new Response(r.cuerpo, {
+    status: r.status,
+    headers: {
+      "Content-Type": safeMime ? r.contentType : "text/plain; charset=utf-8",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; sandbox",
+    },
+  });
 }
