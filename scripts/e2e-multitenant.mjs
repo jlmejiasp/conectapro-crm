@@ -527,6 +527,66 @@ try {
     ) === 2,
     "Repetir un lote no duplica mensajes",
   );
+  const [owner] = await sql`select id from "user" where email=${a.email}`;
+  const [operator] = await sql`select id from "user" where email=${email}`;
+  const newPassword = `New-${randomUUID()}!`;
+  const change = {
+    organizationId: a.org.id,
+    userId: owner.id,
+    adminPassword: password,
+    newPassword,
+  };
+  const reset = (cookie, body = change, origin = base) =>
+    request("/api/admin/password", { cookie, method: "POST", body, origin });
+
+  check(
+    (await request("/admin", { cookie: b.cookie })).status === 404,
+    "Un propietario no puede ver el panel de plataforma",
+  );
+  check(
+    (await request("/admin", { cookie: admin })).status === 200,
+    "El superadmin puede ver el panel de plataforma",
+  );
+  check(
+    (await reset(a.cookie)).status === 403,
+    "Un propietario no puede usar el restablecimiento de plataforma",
+  );
+  check(
+    (await reset(admin, change, "https://otro.local.test")).status === 403,
+    "El restablecimiento requiere el mismo origen",
+  );
+  check(
+    (await reset(admin, { ...change, adminPassword: "incorrecta" })).status ===
+      403,
+    "El superadmin debe confirmar su contraseña actual",
+  );
+  check(
+    (await reset(admin, { ...change, userId: operator.id })).status === 403,
+    "El panel protege las cuentas de superadmin",
+  );
+  check(
+    (await reset(admin, { ...change, organizationId: b.org.id })).status ===
+      404,
+    "No se puede restablecer una cuenta fuera de la ficha de su empresa",
+  );
+  check(
+    (await reset(admin)).status === 200,
+    "El superadmin puede restablecer la contraseña de un miembro",
+  );
+  check(
+    (await request("/api/organizations", { cookie: a.cookie })).status === 401,
+    "La sesión anterior queda cerrada",
+  );
+  const oldLogin = await request("/api/auth/sign-in/email", {
+    method: "POST",
+    body: { email: a.email, password: pwd },
+  });
+  check(oldLogin.status === 401, "La contraseña anterior deja de funcionar");
+  const newCookie = await login(a.email, newPassword);
+  check(
+    (await request("/api/organizations", { cookie: newCookie })).status === 200,
+    "La nueva contraseña permite iniciar sesión",
+  );
   console.log(`MULTITENANT_E2E_OK (${created.length} empresas de prueba)`);
 } finally {
   for (const controller of streamControllers) controller.abort();

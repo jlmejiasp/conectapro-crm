@@ -113,3 +113,16 @@ Sin facturación ni planes, sin registro público de empresas, sin dominios por 
 escalado horizontal. La marca pública es ConectaPro; tras autenticarse se utiliza la de la empresa
 activa. Agenda y canales opcionales conservan sus banderas de despliegue, comunes a la instalación.
 El modo multitenant es optativo y las nuevas tablas/migraciones viajan también con él apagado.
+
+### Panel de superadmin
+
+En **Tus empresas**, el enlace **Administración de plataforma** abre `/admin`.
+Desde allí se crean empresas, se busca por nombre o identificador, se filtra por
+configuración de la clave del agente y se abre la ficha de cada empresa. El
+panel cuenta empresas, membresías, claves de agente y conversaciones reales
+con actividad en los últimos siete días.
+
+La ficha muestra los miembros y permite restablecer su contraseña con la
+contraseña actual del superadmin. El cambio afecta a la cuenta completa, cierra
+sus sesiones y queda registrado en el log del servidor por IDs. Las cuentas
+designadas como superadmin quedan fuera de esta operación.
