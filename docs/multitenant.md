@@ -126,3 +126,13 @@ La ficha muestra los miembros y permite restablecer su contraseña con la
 contraseña actual del superadmin. El cambio afecta a la cuenta completa, cierra
 sus sesiones y queda registrado en el log del servidor por IDs. Las cuentas
 designadas como superadmin quedan fuera de esta operación.
+
+### Guía de WhatsApp para cada empresa
+
+En **Ajustes → WhatsApp**, el propietario o administrador puede conectar su
+número y generar un código de prueba. Debe enviar el código exacto desde otro
+móvil al número de la empresa, pulsar **Comprobar** y responder desde la
+conversación que abre la guía. Se comprueba la bandeja de esa empresa y se
+distingue entre respuesta enviada y entrega confirmada por el canal. Si el
+proveedor no informa de la entrega, se puede confirmar desde el móvil de
+prueba enviando el texto de confirmación que indica la guía.

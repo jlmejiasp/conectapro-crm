@@ -527,6 +527,62 @@ try {
     ) === 2,
     "Repetir un lote no duplica mensajes",
   );
+  // La prueba busca un código exacto en la bandeja de la empresa, y espera
+  // una respuesta del operador y su confirmación de entrega.
+  const code = `CP-${randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase()}`;
+  const verifyWhatsapp = (cookie, phoneNumberId) =>
+    request("/api/settings/whatsapp/prueba", {
+      cookie,
+      method: "POST",
+      body: { code, phoneNumberId },
+    });
+  const phoneA = `phone_${suffix}_0`;
+  const phoneB = `phone_${suffix}_1`;
+  check(
+    (await verifyWhatsapp(a.cookie, phoneA)).data.conversationId === null,
+    "La prueba espera un código que aún no llegó",
+  );
+  const [incoming] = await sql`
+    update message set text=${code} where organization_id=${a.org.id} and wa_message_id=${marker}
+    returning conversation_id, id
+  `;
+  check(
+    (await verifyWhatsapp(a.cookie, phoneA)).data.conversationId ===
+      incoming.conversation_id,
+    "La guía encuentra el código en la conversación de WhatsApp",
+  );
+  check(
+    (await verifyWhatsapp(b.cookie, phoneB)).data.conversationId === null,
+    "La guía no encuentra códigos de otra empresa",
+  );
+  check(
+    (await verifyWhatsapp(b.cookie, phoneA)).status === 409,
+    "La prueba rechaza el número de otra empresa",
+  );
+  const replyId = randomUUID();
+  await sql`
+    insert into message(id,organization_id,conversation_id,direction,status,text,wa_message_id,created_at)
+    select ${replyId},organization_id,conversation_id,'out','sent','Respuesta de prueba',${replyId},created_at + interval '1 second'
+    from message where id=${incoming.id}
+  `;
+  check(
+    (await verifyWhatsapp(a.cookie, phoneA)).data.reply === "sent",
+    "Un envío sin recibo todavía espera confirmación",
+  );
+  await sql`
+    insert into message(id,organization_id,conversation_id,direction,status,text,wa_message_id,created_at)
+    select ${randomUUID()},organization_id,conversation_id,'in','delivered',${`CONFIRMO ${code}`},${randomUUID()},created_at + interval '1 second'
+    from message where id=${replyId}
+  `;
+  check(
+    (await verifyWhatsapp(a.cookie, phoneA)).data.confirmedByRecipient === true,
+    "El móvil de prueba puede confirmar la respuesta cuando el canal no envía recibos",
+  );
+  await sql`update message set status='delivered' where id=${replyId}`;
+  check(
+    (await verifyWhatsapp(a.cookie, phoneA)).data.reply === "delivered",
+    "La confirmación de entrega completa la prueba",
+  );
   const [owner] = await sql`select id from "user" where email=${a.email}`;
   const [operator] = await sql`select id from "user" where email=${email}`;
   const newPassword = `New-${randomUUID()}!`;
