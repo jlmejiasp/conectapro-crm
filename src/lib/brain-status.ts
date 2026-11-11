@@ -87,6 +87,7 @@ export const SIN_DESPACHO: BrainDispatchDto = {
 };
 
 export type BrainStatusDto = {
+  managed?: boolean;
   /** 036 — El interruptor del Agente: el CRM le despacha al cerebro. */
   enabled: boolean;
   /** Hay con qué pensar: la llave de Ajustes → IA (o `OPENROUTER_API_TOKEN`

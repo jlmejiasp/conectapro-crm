@@ -26,6 +26,8 @@ import { AtajosGlobales } from "@/components/atajos-globales";
  */
 export function AppShell({
   branding,
+  multitenant = false,
+  organizationName,
   userName,
   role,
   apariencia,
@@ -36,6 +38,8 @@ export function AppShell({
   children,
 }: {
   branding: Branding;
+  multitenant?: boolean;
+  organizationName?: string;
   userName: string;
   role: string;
   apariencia: Apariencia;
@@ -56,6 +60,14 @@ export function AppShell({
   aviso?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    if (!multitenant) return;
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "conectapro-company-changed") window.location.assign("/");
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [multitenant]);
   const pathname = usePathname();
   const esBandeja = pathname === "/inbox" || pathname.startsWith("/inbox/");
   const [navOpen, setNavOpen] = useState(false);
@@ -90,6 +102,8 @@ export function AppShell({
 
       <AppNav
         branding={branding}
+        multitenant={multitenant}
+        organizationName={organizationName}
         commit={commit}
         userName={userName}
         role={role}

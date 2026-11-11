@@ -1,3 +1,5 @@
+import { getSessionOrNull } from "@/lib/auth/session";
+import { multitenantEnabled } from "@/lib/multitenant";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { accentCssVariables, DEFAULT_BRANDING } from "@/lib/branding";
@@ -66,7 +68,8 @@ const plexMono = localFont({
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const branding = await getBranding().catch(() => DEFAULT_BRANDING);
+  const tenantSession = multitenantEnabled() ? await getSessionOrNull() : null;
+  const branding = await getBranding(tenantSession?.organizationId).catch(() => DEFAULT_BRANDING);
   const producto = productName([...enabledChannels()]);
   return {
     title: `${branding.name} — ${producto}`,
@@ -90,10 +93,11 @@ export const viewport: Viewport = { themeColor: NAV_INK };
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const branding = await getBranding().catch(() => DEFAULT_BRANDING);
+  const tenantSession = multitenantEnabled() ? await getSessionOrNull() : null;
+  const branding = await getBranding(tenantSession?.organizationId).catch(() => DEFAULT_BRANDING);
   // 062 · D6 — La apariencia (tema, letra, tamaño y densidad) se resuelve en
   // el servidor: el primer pintado ya la trae, sin parpadeo.
-  const { apariencia } = await aparienciaActual().catch(() => ({
+  const { apariencia } = await aparienciaActual(tenantSession?.organizationId).catch(() => ({
     apariencia: { tema: "menta", letra: "urbanist", tamano: "normal", densidad: "normal" } as const,
   }));
   return (

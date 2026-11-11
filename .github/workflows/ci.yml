@@ -89,3 +89,63 @@ jobs:
       - name: build
         if: ${{ !cancelled() }}
         run: pnpm build
+
+  multitenant-e2e:
+    name: multitenant · PostgreSQL · dos empresas
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: conectapro_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: local-test-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test -d conectapro_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://test:local-test-only@localhost:5432/conectapro_test
+      APP_BASE_URL: http://localhost:3100
+      BETTER_AUTH_SECRET: ci-local-multitenant-auth-secret-only
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      META_WEBHOOK_VERIFY_TOKEN: ci-local-webhook-token
+      META_APP_SECRET: ci-local-meta-secret
+      BOT_API_KEY: global-key-that-must-not-be-accepted
+      OPENROUTER_API_TOKEN: global-test-llm-key
+      OPENROUTER_MODEL: test-global-model
+      MULTITENANT: "true"
+      PLATFORM_ADMIN_USER_IDS: multitenant-test-admin
+      WA_MOCK_ENABLED: "true"
+      CHANNELS: whatsapp,instagram,messenger,tiktok
+      AGENDA: "on"
+      MEDIA_DIR: /tmp/conectapro-test-media
+      E2E_ADMIN_EMAIL: admin@local.test
+      E2E_ADMIN_PASSWORD: Local-ci-test-password-2026
+      WATCHPACK_POLLING: "1000"
+      AGENT_COALESCE_MS: "500"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Migrar y crear administrador de pruebas
+        run: |
+          MIGRATIONS_DIR=./drizzle node scripts/migrate.mjs
+          node scripts/seed-multitenant-test.mjs
+      - name: Arrancar aplicación y verificar dos empresas
+        run: |
+          pnpm dev --port 3100 > /tmp/conectapro-app.log 2>&1 &
+          APP_PID=$!
+          trap 'kill "$APP_PID"' EXIT
+          for i in $(seq 1 120); do
+            if curl --fail --silent http://localhost:3100/api/health > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/e2e-multitenant.mjs
+      - name: Log de aplicación si falla
+        if: failure()
+        run: tail -200 /tmp/conectapro-app.log

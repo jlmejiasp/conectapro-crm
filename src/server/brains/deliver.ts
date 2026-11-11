@@ -14,7 +14,7 @@ import {
   type MensajeParaEvento,
   type ResultadoEntrega,
 } from "@/server/brains/contract";
-import { leerConfigDespacho } from "@/server/brains/config";
+import { getOrganizationBrain } from "@/server/brains/connections";
 import type { FilaDespacho } from "@/server/dispatch/outbox";
 import { isWindowOpen, windowExpiresAt } from "@/server/inbox/window";
 import { windowMsFor } from "@/server/channels/capabilities";
@@ -351,11 +351,11 @@ export async function avisarOlvido(
     fetchImpl?: typeof fetch;
   } = {}
 ): Promise<ResultadoOlvido> {
-  const config = leerConfigDespacho();
+  const config = opts.destino !== undefined ? null : await getOrganizationBrain(evento.organization.id);
   const destino =
     opts.destino !== undefined
       ? opts.destino
-      : config.active
+      : config?.active
         ? { url: config.url, secret: config.secret }
         : null;
   if (!destino) return "no_aplica";

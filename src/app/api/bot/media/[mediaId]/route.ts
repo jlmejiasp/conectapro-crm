@@ -19,10 +19,10 @@ export async function GET(
   req: Request,
   ctx: { params: Promise<{ mediaId: string }> }
 ) {
-  const denied = requireBotKey(req);
+  const denied = await requireBotKey(req);
   if (denied) return denied;
 
-  const organizationId = await resolveInstanceOrg();
+  const organizationId = await resolveInstanceOrg(req);
   if (!organizationId) {
     return apiError(409, "no_org", "La instancia aún no tiene organización");
   }

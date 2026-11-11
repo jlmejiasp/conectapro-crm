@@ -11,6 +11,7 @@ import { z } from "zod";
 export const envSchema = z.object({
   APP_BASE_URL: z.string().url(),
   DATABASE_URL: z.string().min(1),
+  DATABASE_POOL_SIZE: z.coerce.number().int().min(1).max(100).default(10),
   BETTER_AUTH_SECRET: z.string().min(16),
   ENCRYPTION_KEY: z
     .string()
@@ -23,6 +24,7 @@ export const envSchema = z.object({
   KAPSO_WEBHOOK_SECRET: z.string().optional(),
   // Kapso reenvía a la Cloud API el envío del mismo número en coexistencia.
   KAPSO_API_KEY: z.string().optional(),
+  KAPSO_ORGANIZATION_ID: z.string().optional(),
   KAPSO_API_BASE_URL: z.string().url().default("https://api.kapso.ai/meta/whatsapp"),
   // 066: «Conectar con Meta» (Embedded Signup v4) en Ajustes → WhatsApp. Con
   // las dos y META_APP_SECRET (el de ESA app) aparece el botón; sin ellas,

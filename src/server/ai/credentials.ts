@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { aiDestinationAllowed, AI_DESTINATION_ERROR } from "@/lib/ai/destinations";
+import { multitenantEnabled } from "@/lib/multitenant";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/db/ids";
 import { scoped } from "@/lib/db/tenant";
@@ -81,9 +84,9 @@ export async function getAiCredentialSecret(
 }
 
 export class AiCredentialError extends Error {
-  constructor(readonly code: "sin_token") {
+  constructor(readonly code: "sin_token" | "destino_no_permitido") {
     super(
-      "No hay una llave guardada: pega la llave del proveedor para configurar la IA"
+      code === "destino_no_permitido" ? AI_DESTINATION_ERROR : "Pega la llave del proveedor para configurar la IA o cambiar su dirección"
     );
     this.name = "AiCredentialError";
   }
@@ -108,6 +111,7 @@ export async function saveAiCredential(input: {
   model: string;
   token?: string;
 }): Promise<AiCredentialPublic> {
+  if (!aiDestinationAllowed(input.baseUrl)) throw new AiCredentialError("destino_no_permitido");
   const db = getDb();
   const now = new Date();
 
@@ -120,7 +124,11 @@ export async function saveAiCredential(input: {
         model: input.model,
         updatedAt: now,
       })
-      .where(scoped(schema.aiCredentials.organizationId, input.organizationId))
+      .where(scoped(
+        schema.aiCredentials.organizationId,
+        input.organizationId,
+        multitenantEnabled() ? eq(schema.aiCredentials.baseUrl, input.baseUrl) : undefined,
+      ))
       .returning();
     const row = updated[0];
     if (!row) throw new AiCredentialError("sin_token");
@@ -198,7 +206,7 @@ export async function marcarEstadoPorRespuesta(
     .update(schema.aiCredentials)
     .set({
       status: nuevo,
-      statusReason: detalle?.slice(0, 200) ?? null,
+      statusReason: multitenantEnabled() ? null : detalle?.slice(0, 200) ?? null,
       statusChangedAt: new Date(),
       updatedAt: new Date(),
     })

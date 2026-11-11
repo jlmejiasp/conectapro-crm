@@ -1,8 +1,9 @@
+import { getOrganizationBrain } from "@/server/brains/connections";
 import { and, count, desc, eq, inArray, isNotNull, type SQL } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { scoped } from "@/lib/db/tenant";
 import type { BrainDispatchDto } from "@/lib/brain-status";
-import { leerConfigDespacho, type ConfigDespacho } from "@/server/brains/config";
+import { type ConfigDespacho } from "@/server/brains/config";
 
 /**
  * 021 — Lo que «Quién responde» enseña del despacho: a quién se le empuja,
@@ -36,7 +37,7 @@ const SIN_HECHOS: Hechos = { lastDeliveredAt: null, lastFailure: null, pending: 
 export async function estadoDelDespacho(
   organizationId: string
 ): Promise<BrainDispatchDto> {
-  const config = leerConfigDespacho();
+  const config = await getOrganizationBrain(organizationId);
   // Sin variable no se le pregunta nada a la base: una instancia que no
   // despacha no paga tres consultas cada vez que se pinta la tarjeta.
   if (!config.active && config.host === null && config.problem === null) {

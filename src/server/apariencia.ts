@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
@@ -28,6 +29,7 @@ function leerMetadata(metadata: string | null): Record<string, unknown> {
 
 /** La del negocio, o null si nunca se eligió (vale la de Vocero). */
 export async function aparienciaDelNegocio(organizationId?: string | null): Promise<Apariencia | null> {
+  if (!organizationId && multitenantEnabled()) return null;
   const db = getDb();
   const rows = organizationId
     ? await db

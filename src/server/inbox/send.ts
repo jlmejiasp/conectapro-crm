@@ -151,7 +151,7 @@ async function prepareSend(
       schema.contact,
       eq(schema.conversation.contactId, schema.contact.id)
     )
-    .where(eq(schema.conversation.id, conversationId))
+    .where(and(eq(schema.conversation.id, conversationId), eq(schema.conversation.organizationId, organizationId)))
     .limit(1);
   const row = rows[0];
   if (!row || row.conversation.organizationId !== organizationId) {
@@ -756,7 +756,7 @@ export async function callGraphSend(
   try {
     const res = await graphRequest<{ messages?: { id: string }[] }>(
       `${credentials.phoneNumberId}/messages`,
-      { method: "POST", token: credentials.token, body: payload, viaKapso: true }
+      { method: "POST", token: credentials.token, body: payload, viaKapso: true, organizationId: credentials.organizationId }
     );
     const id = res.messages?.[0]?.id;
     if (!id) throw new SendError("meta_error", "Meta no devolvió ID de mensaje");
