@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import {
@@ -30,6 +31,7 @@ function parseMetadata(metadata: string | null): Record<string, unknown> {
 export async function getBrandingContext(
   organizationId?: string | null
 ): Promise<{ organizationId: string | null; branding: Branding }> {
+  if (!organizationId && multitenantEnabled()) return { organizationId: null, branding: DEFAULT_BRANDING };
   const db = getDb();
   const rows = organizationId
     ? await db

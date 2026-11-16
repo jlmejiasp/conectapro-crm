@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmbeddedSignup } from "./embedded-signup";
+import { WhatsappSetupGuide, type WhatsappSetup } from "./whatsapp-setup-guide";
 import { EntregasCard } from "./entregas-card";
 
 type Connection = {
@@ -59,17 +60,21 @@ export function WhatsappWizard() {
   const [connection, setConnection] = useState<Connection | null>(null);
   const [webhook, setWebhook] = useState<WebhookInfo | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [setup, setSetup] = useState<WhatsappSetup | null>(null);
   const [registration, setRegistration] = useState<LastRegistration | null>(
     null
   );
 
   const refetch = useCallback(async () => {
     const [c, w] = await Promise.all([
-      fetch("/api/settings/whatsapp").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/settings/webhook").then((r) => (r.ok ? r.json() : null)),
-    ]).catch(() => [null, null]);
-    if (c) setConnection(c.connection);
-    if (w) setWebhook(w);
+      fetch("/api/settings/whatsapp").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch("/api/settings/webhook").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]);
+    if (c) {
+      setConnection(c.connection);
+      setSetup(c.setup);
+    }
+    setWebhook(w);
     setLoaded(true);
   }, []);
 
@@ -83,6 +88,17 @@ export function WhatsappWizard() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      {setup ? (
+        <WhatsappSetupGuide
+          setup={setup}
+          phone={connection?.status === "connected" ? { id: connection.phoneNumberId, display: connection.displayPhoneNumber } : null}
+        />
+      ) : (
+        <div role="alert" className="flex items-center gap-3 text-sm">
+          No pudimos cargar la guía de WhatsApp.
+          <Button type="button" variant="outline" onClick={() => void refetch()}>Reintentar</Button>
+        </div>
+      )}
       {connection?.status === "reconnect_required" && (
         <div className="flex flex-wrap items-start gap-2 rounded-lg border border-danger-soft bg-danger-tint p-4 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
@@ -109,14 +125,14 @@ export function WhatsappWizard() {
           <CheckCircle2 className="h-5 w-5 text-success" />
           <div className="min-w-[12rem] flex-1 text-sm">
             <p className="font-medium text-success-text">
-              Número conectado: {connection.displayPhoneNumber ?? connection.phoneNumberId}
+              Número configurado: {connection.displayPhoneNumber ?? connection.phoneNumberId}
             </p>
             <p className="text-success-text opacity-80">
               {connection.verifiedName ? `${connection.verifiedName} · ` : ""}
               token …{connection.tokenLast4}
             </p>
           </div>
-          <Badge variant="success">Conectado</Badge>
+          <Badge variant="success">Credenciales guardadas</Badge>
           <Desconectar
             onHecho={() => {
               setRegistration(null);
@@ -128,29 +144,32 @@ export function WhatsappWizard() {
 
       {/* 066 — La conexión oficial con Meta. Sin la app configurada en la
           instancia no se dibuja y queda solo el alta manual de abajo. */}
-      <EmbeddedSignup
-        onConnected={(r) => {
-          setRegistration({ result: r.webhook as WebhookRegistration, from: "embedded" });
-          void refetch();
-        }}
-      />
-      {registration?.from === "embedded" && (
-        <RegistrationNotice registration={registration.result} afterSave />
-      )}
+      <div id="configurar-numero" className="space-y-6 scroll-mt-6">
+        {setup?.provider !== "kapso" && <EmbeddedSignup
+          onConnected={(r) => {
+            setRegistration({ result: r.webhook as WebhookRegistration, from: "embedded" });
+            void refetch();
+          }}
+        />}
+        {registration?.from === "embedded" && (
+          <RegistrationNotice registration={registration.result} afterSave />
+        )}
 
-      <ConnectForm
-        // 066 — Se rehace si la conexión cambia por «Conectar con Meta»:
-        // los campos toman los IDs nuevos.
-        key={connection?.phoneNumberId ?? "sin-conexion"}
-        existing={connection}
-        registration={registration?.from === "save" ? registration.result : null}
-        onRegistration={(result) =>
-          setRegistration(result ? { result, from: "save" } : null)
-        }
-        onSaved={() => void refetch()}
-      />
+        <ConnectForm
+          // 066 — Se rehace si la conexión cambia por «Conectar con Meta»:
+          // los campos toman los IDs nuevos.
+          key={connection?.phoneNumberId ?? "sin-conexion"}
+          existing={connection}
+          setup={setup}
+          registration={registration?.from === "save" ? registration.result : null}
+          onRegistration={(result) =>
+            setRegistration(result ? { result, from: "save" } : null)
+          }
+          onSaved={() => void refetch()}
+        />
+      </div>
 
-      {webhook && (
+      {webhook && setup?.provider !== "kapso" && setup?.canReceive !== false && (
         <WebhookCard
           webhook={webhook}
           connection={connection}
@@ -239,11 +258,13 @@ function Desconectar({ onHecho }: { onHecho: () => void }) {
 
 function ConnectForm({
   existing,
+  setup,
   registration,
   onRegistration,
   onSaved,
 }: {
   existing: Connection | null;
+  setup: WhatsappSetup | null;
   registration: WebhookRegistration | null;
   onRegistration: (result: WebhookRegistration | null) => void;
   onSaved: () => void;
@@ -337,8 +358,10 @@ function ConnectForm({
         </CardTitle>
         <CardDescription>
           Pega las credenciales de WhatsApp Cloud API. El token se valida
-          contra Meta ANTES de guardarse y se almacena cifrado. Al guardar, el
-          webhook se registra en Meta por ti.
+          contra Meta antes de guardarse y se almacena cifrado.{" "}
+          {setup?.provider === "kapso"
+            ? "Guardar conserva la recepción mediante Kapso."
+            : "Al guardar, ConectaPro intenta registrar la recepción de mensajes en Meta."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -351,8 +374,8 @@ function ConnectForm({
                 El negocio tiene su propia app en{" "}
                 <span className="text-foreground">developers.facebook.com</span>:
                 usa un token de <span className="text-foreground">usuario del sistema</span>{" "}
-                (no expira) con permisos de WhatsApp. En este modo conviene
-                configurar también el App Secret para la firma del webhook.
+                con permisos de WhatsApp. En una plataforma con varias empresas,
+                la firma de Meta debe estar habilitada antes de conectar el número.
               </p>
             </div>
             <div className="rounded-md border p-3">
@@ -445,7 +468,7 @@ function ConnectForm({
             {testing ? "Probando…" : "Probar conexión"}
           </Button>
           <Button
-            disabled={!testResult?.ok || saving}
+            disabled={!testResult?.ok || saving || setup?.canReceive !== true}
             onClick={() => void save()}
           >
             {saving ? "Guardando…" : "Guardar conexión"}

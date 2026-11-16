@@ -1,3 +1,4 @@
+import { aiRedirectPolicy, AI_DESTINATION_ERROR } from "@/lib/ai/destinations";
 import { apiRoot } from "@/lib/ai/presets";
 import { resolveAiProvider } from "@/lib/ai/provider";
 import { marcarEstadoPorRespuesta } from "@/server/ai/credentials";
@@ -43,9 +44,11 @@ export async function pensarPorElCerebro(input: {
       status: 402,
       code: "sin_credencial",
       message:
-        r.estado.motivo === "sin_configurar"
-          ? "No hay proveedor de IA configurado. Ponlo en Ajustes → IA."
-          : "La llave de IA está pausada (el proveedor la rechazó). Revísala en Ajustes → IA.",
+        r.estado.motivo === "destino_no_permitido"
+          ? AI_DESTINATION_ERROR
+          : r.estado.motivo === "sin_configurar"
+            ? "No hay proveedor de IA configurado. Ponlo en Ajustes → IA."
+            : "La llave de IA está pausada (el proveedor la rechazó). Revísala en Ajustes → IA.",
     };
   }
   const { provider } = r;
@@ -62,6 +65,7 @@ export async function pensarPorElCerebro(input: {
       },
       body: input.cuerpoCrudo,
       signal: controller.signal,
+      redirect: aiRedirectPolicy(),
     });
     const cuerpo = await res.text();
 

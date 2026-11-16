@@ -1,3 +1,4 @@
+import { aiRedirectPolicy, AI_DESTINATION_ERROR } from "@/lib/ai/destinations";
 import type { z } from "zod";
 import { chatCompletionsUrl } from "@/lib/ai/presets";
 import {
@@ -149,6 +150,8 @@ function detalleNoConfigurado(estado: Exclude<EstadoIa, { activa: true }>): stri
   switch (estado.motivo) {
     case "sin_configurar":
       return "Sin proveedor de IA: configúralo en Ajustes → IA (u OPENROUTER_API_TOKEN en el entorno)";
+    case "destino_no_permitido":
+      return AI_DESTINATION_ERROR;
     case "token_invalido":
       return `La llave de IA (…${estado.last4}) está pausada: el proveedor la rechazó`;
     case "sin_saldo":
@@ -174,6 +177,7 @@ async function callProvider(
       },
       body: JSON.stringify({ model, messages }),
       signal: controller.signal,
+      redirect: aiRedirectPolicy(),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");

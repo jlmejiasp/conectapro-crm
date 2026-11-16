@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { sql } from "drizzle-orm";
 import { CHANNEL_ORDER, type Channel } from "@/lib/channels";
 import { getDb } from "@/lib/db";
@@ -115,7 +116,7 @@ export async function checkHealth(): Promise<HealthResult> {
   }
   const { commit, verified } = resolveCommit();
   const media = await mediaDirStatus();
-  const webhooks = await conteoGlobal().catch(() => null);
+  const webhooks = multitenantEnabled() ? null : await conteoGlobal().catch(() => null);
   return {
     status: 200,
     body: {

@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { isChannelEnabled } from "@/server/channels/enabled";
 import { processZernioEvent } from "@/server/instagram/ingest";
 import { processZernioMessengerEvent } from "@/server/messenger/ingest";
@@ -83,7 +84,7 @@ export async function isAuthenticZernioDelivery(
     return true;
   }
   const fresh = await webhookSecretsFromZernio(token, segment, WEBHOOKS_RECHECK_MS);
-  if (stored.length === 0 && fresh.length === 0) return true;
+  if (stored.length === 0 && fresh.length === 0) return !multitenantEnabled();
   return fresh.length > 0 && isValidZernioSignatureAny(rawBody, signature, fresh);
 }
 

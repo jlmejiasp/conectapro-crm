@@ -14,10 +14,10 @@ export const dynamic = "force-dynamic";
  * bot, que es quien sabe cada cuánto le conviene releer).
  */
 export async function GET(req: Request) {
-  const denied = requireBotKey(req);
+  const denied = await requireBotKey(req);
   if (denied) return denied;
 
-  const organizationId = await resolveInstanceOrg();
+  const organizationId = await resolveInstanceOrg(req);
   if (!organizationId) {
     return apiError(409, "no_org", "La instancia aún no tiene organización");
   }

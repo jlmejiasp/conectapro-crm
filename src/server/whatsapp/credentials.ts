@@ -78,8 +78,8 @@ export async function getCredentialsByWabaId(
         eq(schema.metaCredentials.messagingAccountId, wabaId)
       )
     )
-    .limit(1);
-  return rows[0] ? toCredentials(rows[0]) : null;
+    .limit(2);
+  return rows.length === 1 ? toCredentials(rows[0]!) : null;
 }
 
 export async function getCredentialsByOrg(

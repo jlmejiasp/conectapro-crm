@@ -1,4 +1,4 @@
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/db/ids";
 
@@ -58,7 +58,7 @@ export async function onUserCreated(userId: string, userName: string) {
   });
 }
 
-/** Organización activa de un usuario (su primera membresía). */
+/** Organización inicial solo cuando la membresía es inequívoca. */
 export async function resolveActiveOrganizationId(
   userId: string
 ): Promise<string | null> {
@@ -66,7 +66,8 @@ export async function resolveActiveOrganizationId(
 }
 
 export async function resolveMembership(
-  userId: string
+  userId: string,
+  organizationId?: string | null
 ): Promise<{ organizationId: string; role: string } | null> {
   const db = getDb();
   const rows = await db
@@ -75,7 +76,16 @@ export async function resolveMembership(
       role: schema.member.role,
     })
     .from(schema.member)
-    .where(eq(schema.member.userId, userId))
-    .limit(1);
-  return rows[0] ?? null;
+    .where(
+      organizationId
+        ? and(
+            eq(schema.member.userId, userId),
+            eq(schema.member.organizationId, organizationId)
+          )
+        : eq(schema.member.userId, userId)
+    )
+    .limit(2);
+  // Sin selección, una segunda membresía hace ambigua la sesión. También
+  // rechazamos duplicados: no hay forma segura de elegir entre dos roles.
+  return rows.length === 1 ? rows[0]! : null;
 }

@@ -37,10 +37,10 @@ export const dynamic = "force-dynamic";
  * aquí y no en el perfil porque depende de la etapa de este momento.
  */
 export async function GET(req: Request) {
-  const denied = requireBotKey(req);
+  const denied = await requireBotKey(req);
   if (denied) return denied;
 
-  const organizationId = await resolveInstanceOrg();
+  const organizationId = await resolveInstanceOrg(req);
   if (!organizationId) {
     return apiError(409, "no_org", "La instancia aún no tiene organización");
   }

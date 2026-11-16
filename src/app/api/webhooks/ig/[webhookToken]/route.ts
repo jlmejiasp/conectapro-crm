@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { getEnv } from "@/lib/env";
 import { isValidSignature, isValidWebhookToken } from "@/server/inbox/webhook";
 import {
@@ -69,7 +70,7 @@ export async function POST(req: Request, { params }: Params) {
     // esta capa, quien conozca la URL secreta puede inyectar DMs falsos: el
     // agente los contestaria enviando un DM REAL desde la cuenta del cliente
     // al destinatario que el atacante elija.
-    if (!isValidSignature(rawBody, req.headers.get("x-hub-signature-256"), env.META_APP_SECRET)) {
+    if ((multitenantEnabled() && !env.META_APP_SECRET) || !isValidSignature(rawBody, req.headers.get("x-hub-signature-256"), env.META_APP_SECRET)) {
       return new Response(null, { status: 401 });
     }
   } else {

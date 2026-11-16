@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { getEnv } from "@/lib/env";
 import { isValidSignature, isValidWebhookToken } from "@/server/inbox/webhook";
 import { recibirEvento } from "@/server/webhooks/recibir";
@@ -41,7 +42,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const rawBody = await req.text();
   const signature = req.headers.get("x-hub-signature-256");
-  if (!isValidSignature(rawBody, signature, env.META_APP_SECRET)) {
+  if ((multitenantEnabled() && !env.META_APP_SECRET) || !isValidSignature(rawBody, signature, env.META_APP_SECRET)) {
     return new Response(null, { status: 401 });
   }
 

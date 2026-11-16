@@ -1,3 +1,10 @@
+<!-- Extensión de ConectaPro autorizada por el responsable el 2026-11-08:
+la petición explícita de convertir este fork en multitenant sustituye las
+restricciones heredadas de una instancia/un negocio. Se preservan aislamiento,
+secretos cifrados, idempotencia, dependencias y puertas de verificación.
+La primera entrega operativa no introduce facturación ni servicios obligatorios.
+Diseño y límites: specs/068-multitenant-conectapro y docs/multitenant.md. -->
+
 <!--
 SYNC IMPACT REPORT
 ==================

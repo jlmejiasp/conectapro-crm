@@ -1,3 +1,4 @@
+import { aiRedirectPolicy } from "@/lib/ai/destinations";
 import { chatCompletionsUrl, modelsUrl } from "@/lib/ai/presets";
 
 /**
@@ -77,6 +78,7 @@ export async function probeProvider(input: {
         max_tokens: 5,
       }),
       signal: controller.signal,
+      redirect: aiRedirectPolicy(),
     });
     if (res.ok) {
       const json = (await res.json().catch(() => null)) as {
@@ -230,6 +232,7 @@ export async function listModels(input: {
         Accept: "application/json",
       },
       signal: controller.signal,
+      redirect: aiRedirectPolicy(),
     });
     if (res.status === 401 || res.status === 403) {
       return {

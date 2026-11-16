@@ -19,10 +19,10 @@ const bodySchema = z.object({ conversationId: z.string().min(1) });
  * dura hasta ~25 s o hasta que llegue la respuesta real.
  */
 export async function POST(req: Request) {
-  const denied = requireBotKey(req);
+  const denied = await requireBotKey(req);
   if (denied) return denied;
 
-  const organizationId = await resolveInstanceOrg();
+  const organizationId = await resolveInstanceOrg(req);
   if (!organizationId) {
     return apiError(409, "no_org", "La instancia aún no tiene organización");
   }

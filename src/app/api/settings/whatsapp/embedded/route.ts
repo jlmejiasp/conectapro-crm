@@ -1,3 +1,4 @@
+import { whatsappSetup } from "@/server/whatsapp/setup";
 import { z } from "zod";
 import { apiError, parseBody, withAuth } from "@/lib/api";
 import { canConfigure } from "@/lib/auth/roles";
@@ -26,7 +27,7 @@ const NO_STORE = { "Cache-Control": "no-store" };
 
 export const GET = withAuth(async (session) => {
   const cfg = embeddedConfig();
-  if (!cfg.ready) return new Response(null, { status: 404 });
+  if (!cfg.ready || whatsappSetup(session.organizationId).provider === "kapso") return new Response(null, { status: 404 });
   const canManage = canConfigure(session.role);
   if (!canManage) return Response.json({ ready: true, canManage }, { headers: NO_STORE });
   return Response.json(
@@ -51,7 +52,7 @@ const inputSchema = z.object({
 });
 
 export const POST = withAuth(async (session, req: Request) => {
-  if (!embeddedConfig().ready) return new Response(null, { status: 404 });
+  if (!embeddedConfig().ready || whatsappSetup(session.organizationId).provider === "kapso") return new Response(null, { status: 404 });
   if (!canConfigure(session.role)) {
     return apiError(403, "forbidden", "Solo quien administra la cuenta puede conectar WhatsApp.");
   }

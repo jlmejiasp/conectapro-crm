@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { mediaDirStatus } from "@/server/media-dir";
@@ -96,6 +97,7 @@ export async function encryptLegacySecrets(): Promise<void> {
  * responde»: es el log que alguien mira cuando el agente no contesta.
  */
 export function resumeDispatch(): void {
+  if (multitenantEnabled()) { iniciarWorker(); void tanda(); return; }
   const config = leerConfigDespacho();
   if (config.active) {
     iniciarWorker();

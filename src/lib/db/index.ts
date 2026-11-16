@@ -40,7 +40,7 @@ const globalForDb = globalThis as unknown as {
 function createClient() {
   const env = getEnv();
   return postgres(env.DATABASE_URL, {
-    max: 10,
+    max: env.DATABASE_POOL_SIZE,
     ...PG_CONNECTION_OPTIONS,
   });
 }

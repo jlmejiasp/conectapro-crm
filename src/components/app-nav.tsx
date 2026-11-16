@@ -69,6 +69,8 @@ export function navItemClass(active: boolean) {
 
 export function AppNav({
   branding,
+  multitenant = false,
+  organizationName,
   userName,
   role,
   apariencia,
@@ -79,6 +81,8 @@ export function AppNav({
   onClose,
 }: {
   branding: Branding;
+  multitenant?: boolean;
+  organizationName?: string;
   userName: string;
   role: string;
   apariencia: Apariencia;
@@ -310,7 +314,9 @@ export function AppNav({
           de arriba abajo como una lista de lo que hay. Un grupo sin título
           (Resultados) es una entrada suelta separada por el espacio. */}
       <nav className="flex flex-col gap-4" aria-label="Secciones">
-        {groups.map((group, i) => (
+        {organizationName && <p className="px-2.5 py-2 text-xs font-semibold text-text-2">Empresa: {organizationName}</p>}
+          {multitenant && <Link href="/organizations" className={navItemClass(pathname === "/organizations")}>Cambiar empresa</Link>}
+          {groups.map((group, i) => (
           <div key={group.title ?? i} className="flex flex-col gap-0.5">
             {group.title && (
               <span className="kicker mb-1 block px-2.5" aria-hidden>

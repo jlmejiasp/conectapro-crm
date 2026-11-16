@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { getEnv } from "@/lib/env";
 import { isValidSignature, isValidWebhookToken } from "@/server/inbox/webhook";
 import {
@@ -67,7 +68,7 @@ export async function POST(req: Request, { params }: Params) {
     // enviando un mensaje REAL desde la página al destinatario que el atacante
     // elija.
     if (
-      !isValidSignature(
+      (multitenantEnabled() && !env.META_APP_SECRET) || !isValidSignature(
         rawBody,
         req.headers.get("x-hub-signature-256"),
         env.META_APP_SECRET

@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { multitenantEnabled } from "@/lib/multitenant";
+import { brainKeyHash } from "@/server/brains/connections";
 import { timingSafeEqual } from "node:crypto";
 import { getDb, schema } from "@/lib/db";
 import { apiError } from "@/lib/api";
@@ -59,7 +62,36 @@ function llaveDe(req: Request): string | null {
   return m?.[1] ?? null;
 }
 
-export function requireBotKey(req: Request): Response | null {
+const requestOrganizations = new WeakMap<Request, string>();
+
+async function requireTenantBotKey(req: Request): Promise<Response | null> {
+  const provided = llaveDe(req);
+  // Limitar antes de consultar también evita búsquedas de hashes arbitrarios.
+  const ip = clientIp(req.headers);
+  if (!provided || !/^cp_[A-Za-z0-9_-]{43}$/.test(provided))
+    return failedTenantAuth(ip);
+  const [row] = await getDb()
+    .select({ organizationId: schema.brainConnection.organizationId })
+    .from(schema.brainConnection)
+    .where(eq(schema.brainConnection.keyHash, brainKeyHash(provided)))
+    .limit(1);
+  if (!row) return failedTenantAuth(ip);
+  requestOrganizations.set(req, row.organizationId);
+  markBotSeen(Date.now(), row.organizationId);
+  const rl = checkRateLimit(`bot-api:${row.organizationId}`, BOT_API_BUDGET);
+  return rl.allowed
+    ? null
+    : apiError(429, "rate_limited", "Demasiadas solicitudes");
+}
+function failedTenantAuth(ip: string): Response {
+  const rl = checkRateLimit(`bot-api-fail:${ip}`, BOT_AUTH_FAILURES);
+  return rl.allowed
+    ? apiError(401, "unauthorized", "No autorizado")
+    : apiError(429, "rate_limited", "Demasiados intentos fallidos");
+}
+
+export async function requireBotKey(req: Request): Promise<Response | null> {
+  if (multitenantEnabled()) return requireTenantBotKey(req);
   if (!validBotKey(llaveDe(req))) {
     const ip = clientIp(req.headers);
     const fails = checkRateLimit(`bot-api-fail:${ip}`, BOT_AUTH_FAILURES);
@@ -72,7 +104,8 @@ export function requireBotKey(req: Request): Response | null {
   // sigue siendo el que contesta.
   markBotSeen();
   const rl = checkRateLimit("bot-api", BOT_API_BUDGET);
-  if (!rl.allowed) return apiError(429, "rate_limited", "Demasiadas solicitudes");
+  if (!rl.allowed)
+    return apiError(429, "rate_limited", "Demasiadas solicitudes");
   return null;
 }
 
@@ -88,20 +121,18 @@ function validBotKey(provided: string | null): boolean {
  * Organización única de la instancia (self-hosted, un negocio). Cacheada en
  * memoria: la instancia jamás cambia de organización en runtime.
  */
-let cachedOrgId: string | null = null;
-
-export async function resolveInstanceOrg(): Promise<string | null> {
-  if (cachedOrgId) return cachedOrgId;
-  const db = getDb();
-  const rows = await db
+export async function resolveInstanceOrg(
+  req?: Request,
+): Promise<string | null> {
+  if (multitenantEnabled())
+    return req ? (requestOrganizations.get(req) ?? null) : null;
+  // No cachear una selección global: si se añadiera otra empresa, se deniega.
+  const rows = await getDb()
     .select({ id: schema.organization.id })
     .from(schema.organization)
-    .limit(1);
-  cachedOrgId = rows[0]?.id ?? null;
-  return cachedOrgId;
+    .limit(2);
+  return rows.length === 1 ? rows[0]!.id : null;
 }
 
-/** Solo para tests. */
-export function resetInstanceOrgCache(): void {
-  cachedOrgId = null;
-}
+/** Compatibilidad con arneses de la versión anterior; ya no existe caché. */
+export function resetInstanceOrgCache(): void {}

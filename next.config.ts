@@ -8,6 +8,17 @@ const { version } = JSON.parse(
 ) as { version: string };
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      ],
+    }];
+  },
   // standalone es para la imagen Docker (Linux). En Windows el trazado crea
   // symlinks que requieren permisos elevados, así que ahí se omite.
   output: process.platform === "win32" ? undefined : "standalone",

@@ -1,8 +1,10 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { z } from "zod";
 import {
   AI_PROVIDERS,
   AI_PROVIDER_PRESETS,
   last4,
+  apiRoot,
   type AiProviderId,
 } from "@/lib/ai/presets";
 import {
@@ -104,11 +106,13 @@ export function baseUrlEfectiva(
  */
 export async function llaveParaProbar(
   organizationId: string,
-  escrita: string | undefined
+  escrita: string | undefined,
+  baseUrl: string,
 ): Promise<{ token: string; guardada: boolean } | null> {
   if (escrita) return { token: escrita, guardada: false };
   const cred = await getAiCredentialSecret(organizationId);
-  return cred ? { token: cred.token, guardada: true } : null;
+  if (!cred || (multitenantEnabled() && apiRoot(cred.baseUrl) !== apiRoot(baseUrl))) return null;
+  return { token: cred.token, guardada: true };
 }
 
 export type AiSettingsView = {
@@ -140,7 +144,7 @@ export function credencialVista(
     modelo: cred.model,
     tokenLast4: cred.tokenLast4,
     estado: cred.status,
-    motivo: cred.statusReason,
+    motivo: multitenantEnabled() ? null : cred.statusReason,
     desde: cred.statusChangedAt?.toISOString() ?? null,
     actualizado: cred.updatedAt.toISOString(),
   };

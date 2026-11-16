@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getEnv } from "@/lib/env";
+import { whatsappSetup } from "@/server/whatsapp/setup";
 import { apiError, parseBody, withAuth } from "@/lib/api";
 import {
   desconectarCanal,
@@ -24,8 +24,10 @@ export const dynamic = "force-dynamic";
 
 export const GET = withAuth(async (session) => {
   const creds = await getCredentialsByOrg(session.organizationId);
-  if (!creds) return Response.json({ connection: null });
+  const setup = whatsappSetup(session.organizationId);
+  if (!creds) return Response.json({ connection: null, setup });
   return Response.json({
+    setup,
     connection: {
       wabaId: creds.wabaId,
       messagingAccountId: creds.messagingAccountId,
@@ -62,6 +64,11 @@ export const PUT = withAuth(async (session, req: Request) => {
   const body = await parseBody(req, putSchema);
   if (!body.ok) return body.response;
 
+  const setup = whatsappSetup(session.organizationId);
+  if (!setup.canReceive) {
+    return apiError(409, "meta_signature_required", "El administrador de ConectaPro debe activar la firma de Meta antes de conectar este número.");
+  }
+
   const check = await testConnection(body.data.phoneNumberId, body.data.token);
   if (!check.ok) {
     const status = check.code === "meta_unavailable" ? 503 : 422;
@@ -85,7 +92,7 @@ export const PUT = withAuth(async (session, req: Request) => {
 
   // Kapso ya entrega los eventos a /api/webhooks/kapso. Rotar el token de
   // envío no debe sustituir su suscripción ni el override del número en Meta.
-  const webhook = getEnv().KAPSO_WEBHOOK_SECRET
+  const webhook = setup.provider === "kapso"
     ? { ok: true as const, skipped: "kapso" as const }
     : await registerWebhookForNumber({
         wabaId: body.data.wabaId,

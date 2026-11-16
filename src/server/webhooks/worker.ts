@@ -1,3 +1,5 @@
+import { multitenantEnabled } from "@/lib/multitenant";
+import { resolverOrganizacion } from "./organizacion";
 import {
   marcarProcesado,
   purgar,
@@ -116,6 +118,9 @@ export async function barrido(ahora: Date = new Date()): Promise<number> {
 
 async function intentar(fila: FilaEvento): Promise<void> {
   try {
+    if (multitenantEnabled() && await resolverOrganizacion(fila.fuente, fila.payload) !== fila.organizationId) {
+      throw new Error("La conexión cambió de empresa: evento retenido para revisión");
+    }
     await procesarFuente(fila.fuente, fila.payload);
   } catch (err) {
     const cuando = await reintentarOAgotar(fila, err);

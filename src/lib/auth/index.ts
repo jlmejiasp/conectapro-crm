@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -65,6 +66,11 @@ function createAuth() {
     plugins: [organization({ creatorRole: "owner" })],
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        // Las empresas se provisionan por el servicio de plataforma para sembrar
+        // dominio y roles de forma atómica, sin rutas paralelas del plugin.
+        if (multitenantEnabled() && ctx.path.startsWith("/organization/")) {
+          throw new APIError("FORBIDDEN", { message: "Usa la gestión de empresas de ConectaPro" });
+        }
         // Rate limit por IP en login/registro (FR-062): 10 / 10 min → 429.
         if (RATE_LIMITED_PATHS.has(ctx.path)) {
           const ip = clientIp(ctx.headers);
@@ -90,6 +96,9 @@ function createAuth() {
       user: {
         create: {
           after: async (user) => {
+            // El alta controlada de una empresa siembra su propio dominio;
+            // una cuenta interna nunca debe crear una segunda empresa implícita.
+            if (multitenantEnabled() && isInternalSignup()) return;
             await onUserCreated(user.id, user.name);
           },
         },

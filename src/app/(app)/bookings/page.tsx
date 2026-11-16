@@ -1,3 +1,4 @@
+import { multitenantEnabled } from "@/lib/multitenant";
 import { notFound, redirect } from "next/navigation";
 import { BookingsClient } from "@/components/bookings/bookings-client";
 import { getSessionOrNull } from "@/lib/auth/session";
@@ -26,7 +27,7 @@ export default async function BookingsPage({
   // Sin la bandera esta pantalla no existe en esta instancia.
   if (!agendaEnabled()) notFound();
   const session = await getSessionOrNull();
-  if (!session) redirect("/login");
+  if (!session) redirect(multitenantEnabled() ? "/organizations" : "/login");
 
   const settings = await getSettings(session.organizationId);
   const params = await searchParams;

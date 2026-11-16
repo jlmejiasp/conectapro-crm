@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { borrarMedia, guardarMedia, leerMedia, rutaEnDisco } from "@/lib/storage/medios";
@@ -213,7 +213,7 @@ export async function ensureAssetAvailable(
   const rows = await db
     .select()
     .from(schema.mediaAsset)
-    .where(eq(schema.mediaAsset.id, assetId))
+    .where(and(eq(schema.mediaAsset.id, assetId), eq(schema.mediaAsset.organizationId, organizationId)))
     .limit(1);
   const asset = rows[0];
   if (!asset || asset.organizationId !== organizationId) return null;
@@ -239,7 +239,7 @@ export async function ensureAssetAvailable(
         fetchError: null,
         updatedAt: new Date(),
       })
-      .where(eq(schema.mediaAsset.id, assetId))
+      .where(and(eq(schema.mediaAsset.id, assetId), eq(schema.mediaAsset.organizationId, organizationId)))
       .returning();
     return updated[0] ?? null;
   } catch (err) {
@@ -247,7 +247,7 @@ export async function ensureAssetAvailable(
     await db
       .update(schema.mediaAsset)
       .set({ fetchStatus: "failed", fetchError: message, updatedAt: new Date() })
-      .where(eq(schema.mediaAsset.id, assetId));
+      .where(and(eq(schema.mediaAsset.id, assetId), eq(schema.mediaAsset.organizationId, organizationId)));
     console.warn(`[media] descarga del asset ${assetId} falló: ${message}`);
     return null;
   }

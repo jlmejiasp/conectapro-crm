@@ -4,6 +4,16 @@
 
 Esta es la única base del proyecto ConectaPro. La adaptación inicial cambia la marca predeterminada a **ConectaPro**, con su inicial **C** en el panel, favicon y app instalable. Los negocios pueden seguir personalizando nombre, color y logo desde Ajustes → Marca. No se sobrescriben marcas guardadas.
 
+## Modo multitenant de ConectaPro
+
+Con `MULTITENANT=true`, una instalación puede alojar varias empresas con usuarios,
+contactos, conversaciones, canales y agentes independientes. El administrador de
+plataforma crea las empresas desde `/organizations`. La primera versión utiliza
+una sola réplica de aplicación y altas controladas.
+
+Lee [la configuración, migración y pruebas](docs/multitenant.md) antes de activarlo.
+Compila este fork: las imágenes upstream de Vocero no incluyen esta adaptación.
+
 ## Trabajar con este fork
 
 ```bash

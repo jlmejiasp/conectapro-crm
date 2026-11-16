@@ -24,7 +24,7 @@ import {
 } from "@/server/attribution/referral";
 import { registrarAnuncioDeOrigen } from "@/server/attribution/store";
 import { onLeadActivity } from "@/server/inbox/lead-activity";
-import { despachoActivo } from "@/server/brains/config";
+import { getOrganizationBrain } from "@/server/brains/connections";
 import { despacharAlCerebro } from "@/server/dispatch/encolar";
 import {
   aCitaDto,
@@ -392,7 +392,7 @@ async function ingestManualEcho(
       replyToWaMessageId: citaDelWebhook(echo),
       waTimestamp,
     })
-    .onConflictDoNothing({ target: [schema.message.waMessageId] })
+    .onConflictDoNothing({ target: [schema.message.organizationId, schema.message.waMessageId] })
     .returning();
   const message = inserted[0];
   if (!message) return; // duplicado
@@ -516,7 +516,7 @@ export async function ingestInboundMessage(input: {
       replyToWaMessageId: input.replyToWaMessageId ?? null,
       waTimestamp,
     })
-    .onConflictDoNothing({ target: [schema.message.waMessageId] })
+    .onConflictDoNothing({ target: [schema.message.organizationId, schema.message.waMessageId] })
     .returning();
   const message = inserted[0];
   if (!message) return; // duplicado
@@ -555,7 +555,7 @@ export async function ingestInboundMessage(input: {
 
   // 036 — Quien contesta es el cerebro conectado; sin él, una persona. El
   // 025: `message.id` es lo que el despacho le debe al cerebro.
-  if (despachoActivo()) await despacharAlCerebro(conversation.id, organizationId, message.id);
+  if ((await getOrganizationBrain(organizationId)).active) await despacharAlCerebro(conversation.id, organizationId, message.id);
 }
 
 function toDate(timestamp: string): Date {

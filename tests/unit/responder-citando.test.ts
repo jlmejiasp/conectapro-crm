@@ -59,7 +59,7 @@ vi.mock("@/server/inbox/identity", async (importOriginal) => {
 vi.mock("@/server/inbox/lead-activity", () => ({
   onLeadActivity: vi.fn(async () => {}),
 }));
-vi.mock("@/server/brains/config", () => ({ despachoActivo: () => false }));
+vi.mock("@/server/brains/connections", () => ({ getOrganizationBrain: async () => ({ active: false, host: null, problem: null, healthUrl: null, keyConfigured: false }) }));
 vi.mock("@/server/dispatch/encolar", () => ({
   despacharAlCerebro: vi.fn(async () => {}),
 }));

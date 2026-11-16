@@ -1,5 +1,7 @@
+import { whatsappSetup } from "@/server/whatsapp/setup";
 import { apiError, withAuth } from "@/lib/api";
 import { canConfigure } from "@/lib/auth/roles";
+import { isPlatformAdmin, multitenantEnabled } from "@/lib/multitenant";
 import { getEnv } from "@/lib/env";
 import { isChannelEnabled } from "@/server/channels/enabled";
 import { registerWebhookForNumber } from "@/server/whatsapp/connect";
@@ -19,7 +21,10 @@ export const dynamic = "force-dynamic";
  * viajan las tres URLs y la pantalla de cada canal enseña la suya. Las de un
  * canal apagado van en null: no existen en esta instancia (ADR-001).
  */
-export const GET = withAuth(async () => {
+export const GET = withAuth(async (session) => {
+  if (!canConfigure(session.role) || (multitenantEnabled() && !isPlatformAdmin(session.userId))) {
+    return apiError(403, "forbidden", "La configuración del webhook está reservada al administrador.");
+  }
   const env = getEnv();
   const url = webhookUrl("wa");
   return Response.json({
@@ -31,7 +36,7 @@ export const GET = withAuth(async () => {
     verifyToken: env.META_WEBHOOK_VERIFY_TOKEN,
     isHttps: url.startsWith("https://"),
     signatureLayer: Boolean(env.META_APP_SECRET),
-  });
+  }, { headers: { "Cache-Control": "private, no-store" } });
 });
 
 /**
@@ -55,6 +60,13 @@ export const POST = withAuth(async (session, req: Request) => {
   }
   if (recuperar && !canConfigure(session.role)) {
     return apiError(403, "forbidden", "Solo quien administra puede recuperar el webhook");
+  }
+  const setup = whatsappSetup(session.organizationId);
+  if (setup.provider === "kapso") {
+    return apiError(409, "kapso_active", "Kapso gestiona la recepción de esta empresa.");
+  }
+  if (!setup.canReceive) {
+    return apiError(409, "meta_signature_required", "El administrador de ConectaPro debe activar la firma de Meta.");
   }
   const creds = await getCredentialsByOrg(session.organizationId);
   if (!creds) {
